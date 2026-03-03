@@ -1,6 +1,3 @@
-# Rôle du fichier: gitattributes définit les règles Git appliquées au dépôt.
-# Ce fichier contrôle le suivi des contenus et la normalisation associée.
-# Il évite les écarts de versionnement et garantit une base de travail stable.
 *.7z filter=lfs diff=lfs merge=lfs -text
 *.arrow filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
@@ -35,9 +32,3 @@ saved_model/**/* filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.zst filter=lfs diff=lfs merge=lfs -text
 *tfevents* filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/data/brussels_listings.RData filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/data/brussels_reviews_anno.RData filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/data/brussels_reviews_w2v_embeddings_lemma_nl.RData filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/data/brussels_reviews.RData filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/inst/dummydata/toymodel.udpipe filter=lfs diff=lfs merge=lfs -text
-packages/udpipe/french-gsd-ud-2.5-191206.udpipe filter=lfs diff=lfs merge=lfs -text
