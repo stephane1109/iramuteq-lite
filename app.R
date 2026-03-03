@@ -1,20 +1,9 @@
-# Rôle du fichier: app.R porte une partie du pipeline d'analyse Rainette.
-# Ce script centralise une responsabilité métier/technique utilisée par l'application.
-
 ###############################################################################
 #                    Script CHD - version beta 0.4 - 18-02-2026               #
 #      A partir d'un corpus texte formaté aux exigences IRAMUTEQ              #
 #                            Stéphane Meurisse                                #
 #                           wwww.codeandcortex.fr                             #          
 #                                                                             #
-#      1.Réalise la CHD sur le corpus, sans rainette_explor                   #
-#      2.Extrait chi2, lr, freq, docprop dans un CSV                          #
-#      3.AFC                                                                  #
-#      4.Recherche de NER avec Spacy (md)                                     #
-#      5.Génère nuages de mots et graphes de cooccurrences par classe         #
-#      6.Exporte les segments de texte par classe au format text              #
-#      7.Creation d'un concordancier au format html                           #
-#      8.Recherche de coocurrences                                            #
 ###############################################################################
 
 library(shiny)
