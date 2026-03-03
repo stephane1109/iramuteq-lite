@@ -47,6 +47,7 @@ source("iramuteq-like/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/dendogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/stats_chd.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteq-like/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
 
 server <- function(input, output, session) {
 
@@ -97,7 +98,12 @@ server <- function(input, output, session) {
     stats_zipf_df = NULL
   )
 
-  register_outputs_status(input, output, session, rv)
+  if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
+    register_outputs_status(input, output, session, rv)
+  } else {
+    output$statut <- renderText({ rv$statut })
+    output$logs <- renderText({ rv$logs })
+  }
 
   output$ui_afc_statut <- renderUI({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
@@ -279,7 +285,10 @@ server <- function(input, output, session) {
   })
 
   register_events_lancer(input, output, session, rv)
-  register_rainette_explor_affichage(input, output, session, rv)
+
+  if (exists("register_rainette_explor_affichage", mode = "function", inherits = TRUE)) {
+    register_rainette_explor_affichage(input, output, session, rv)
+  }
 
   output$plot_afc_classes <- renderPlot({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
