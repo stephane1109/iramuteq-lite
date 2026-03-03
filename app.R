@@ -7,12 +7,20 @@
 ###############################################################################
 
 library(shiny)
-library(quanteda)
-library(wordcloud)
-library(RColorBrewer)
-library(igraph)
-library(dplyr)
 library(htmltools)
+
+charger_package_optionnel <- function(pkg) {
+  ok <- suppressWarnings(
+    suppressPackageStartupMessages(
+      require(pkg, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
+    )
+  )
+  if (!isTRUE(ok)) return(pkg)
+  NULL
+}
+
+packages_requis <- c("quanteda", "wordcloud", "RColorBrewer", "igraph", "dplyr")
+packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, charger_package_optionnel)))
 
 options(shiny.maxRequestSize = 300 * 1024^2)
 options(shinygadgets.viewer = shiny::browserViewer())
@@ -260,6 +268,14 @@ server <- function(input, output, session) {
   })
 
   output$ui_chd_statut <- renderUI({
+    if (length(packages_manquants) > 0) {
+      return(tags$div(
+        style = "border: 1px solid #f5c2c7; background: #f8d7da; color: #842029; border-radius: 4px; padding: 10px; margin-bottom: 10px;",
+        tags$strong("Dépendances manquantes : "),
+        paste(packages_manquants, collapse = ", ")
+      ))
+    }
+
     if (is.null(rv$res)) {
       return(tags$p("CHD non disponible. Lance une analyse."))
     }
