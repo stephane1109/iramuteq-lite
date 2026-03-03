@@ -307,6 +307,26 @@ register_events_lancer <- function(input, output, session, rv) {
 
       ajouter_log(rv, "Clic sur 'Lancer l'analyse' reçu.")
 
+      if (exists("packages_manquants", inherits = TRUE) && length(packages_manquants) > 0) {
+        rv$statut <- "Impossible de lancer l'analyse : dépendances manquantes."
+        ajouter_log(
+          rv,
+          paste0(
+            "Packages R manquants détectés au démarrage : ",
+            paste(packages_manquants, collapse = ", ")
+          )
+        )
+        showNotification(
+          paste0(
+            "Installation requise des packages : ",
+            paste(packages_manquants, collapse = ", ")
+          ),
+          type = "error",
+          duration = 10
+        )
+        return(invisible(NULL))
+      }
+
       modele_chd <- "iramuteq"
       mode_iramuteq <- TRUE
       source_dictionnaire <- "lexique_fr"
