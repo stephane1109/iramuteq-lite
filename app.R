@@ -55,6 +55,8 @@ source("iramuteq-like/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/dendogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/stats_chd.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteq-like/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteq-like/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
 
 server <- function(input, output, session) {
 
