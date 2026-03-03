@@ -40,3 +40,6 @@ RUN chown -R user:user /home/user/app
 
 USER user
 EXPOSE 7860
+
+# Lancement explicite de l'app Shiny pour Hugging Face Spaces (Docker SDK)
+CMD ["R", "-q", "-e", "port <- as.integer(Sys.getenv('PORT', '7860')); shiny::runApp('/home/user/app', host='0.0.0.0', port=port)"]
