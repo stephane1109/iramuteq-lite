@@ -386,10 +386,6 @@ register_events_lancer <- function(input, output, session, rv) {
     output$ui_wordcloud_iramuteq <- renderUI({
       req(rv$export_dir, rv$exports_prefix)
 
-      if (!identical(rv$res_type, "iramuteq")) {
-        return(tags$p("Nuage de mots IRaMuTeQ-like indisponible (mode Rainette actif)."))
-      }
-
       classe_sel <- as.character(input$classe_viz_iramuteq)
       if (length(classe_sel) != 1 || is.na(classe_sel) || !nzchar(classe_sel)) {
         return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
@@ -397,7 +393,8 @@ register_events_lancer <- function(input, output, session, rv) {
 
       src_rel <- file.path("wordclouds", paste0("cluster_", classe_sel, "_wordcloud.png"))
       if (!file.exists(file.path(rv$export_dir, src_rel))) {
-        return(tags$p("Aucun nuage de mots disponible pour cette classe."))
+        mode_label <- if (identical(rv$res_type, "iramuteq")) "IRaMuTeQ-like" else "analyse"
+        return(tags$p(paste0("Aucun nuage de mots disponible pour cette classe (", mode_label, ").")))
       }
 
       tags$div(
