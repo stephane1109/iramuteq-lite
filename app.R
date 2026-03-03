@@ -18,7 +18,6 @@
 ###############################################################################
 
 library(shiny)
-library(rainette)
 library(quanteda)
 library(wordcloud)
 library(RColorBrewer)
@@ -46,43 +45,20 @@ if (file.exists("help.md")) {
   }
 }
 
-source("rainette/nettoyage_rainette.R", encoding = "UTF-8", local = TRUE)
+
 source("iramuteq-like/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("rainette/afc_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/concord_utils_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/concord_spacy_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/concord_lexique_rainette.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("spacy_ner/concordancier_ner.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("rainette/stats_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/ui_options_rainette.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/affichage_iramuteq-like.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("ui.R", encoding = "UTF-8", local = TRUE)
 
-source("rainette/utils_general_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/utils_logging_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/utils_text_rainette.R", encoding = "UTF-8", local = TRUE)
-
-source("rainette/afc_helpers_rainette.R", encoding = "UTF-8", local = TRUE)
-
-source("rainette/chd_afc_pipeline_rainette.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/dendogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/stats_chd.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("rainette/nlp_language_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/nlp_spacy_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/nlp_lexique_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/pipeline_spacy_analysis_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/pipeline_lexique_analysis_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/pipeline_iramuteq_analysis_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/cooccurrences_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/server_outputs_status_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/server_events_lancer_rainette.R", encoding = "UTF-8", local = TRUE)
-source("rainette/rainette_explor_affichage.R", encoding = "UTF-8", local = TRUE)
 
 server <- function(input, output, session) {
 
