@@ -208,8 +208,7 @@ ui <- fluidPage(
 
       tags$div(
         style = "display: flex; gap: 8px; flex-wrap: wrap; align-items: center;",
-        actionButton("lancer", "Lancer l'analyse"),
-        actionButton("explor", "Explor rainette", class = "btn-primary")
+        actionButton("lancer", "Lancer l'analyse")
       ),
 
       tags$hr(),
@@ -237,53 +236,6 @@ ui <- fluidPage(
           tags$h3("Répartition des classes"),
           tableOutput("table_classes")
         ),
-
-        tabPanel(
-          "Explore rainette",
-          tags$h3("Explore_rainette"),
-          selectInput("classe_viz", "Classe", choices = c("1"), selected = "1"),
-          tabsetPanel(
-            tabPanel(
-              "CHD",
-              tags$h4("Dendrogramme CHD (Rainette)"),
-              plotOutput("plot_chd_rainette_dendro", height = "360px"),
-              tags$hr(),
-              fluidRow(
-                column(
-                  4,
-                  sliderInput("k_plot", "Nombre de classes (k)", min = 2, max = 2, value = 2, step = 1),
-                  selectInput(
-                    "measure_plot", "Statistiques",
-                    choices = c(
-                      "Frequency - Terms" = "frequency",
-                      "Keyness - Chi-squared" = "chi2",
-                      "Keyness - Likelihood ratio" = "lr",
-                      "Frequency - Documents proportion" = "docprop"
-                    ),
-                    selected = "frequency"
-                  ),
-                  selectInput("type_plot", "Type", choices = c("bar", "cloud"), selected = "bar"),
-                  numericInput("n_terms_plot", "Nombre de termes", value = 20, min = 5, max = 1000, step = 1),
-                  conditionalPanel(
-                    "input.measure_plot != 'docprop'",
-                    checkboxInput("same_scales_plot", "Forcer les mêmes échelles", value = TRUE)
-                  ),
-                  checkboxInput("show_negative_plot", "Afficher les valeurs négatives", value = FALSE),
-                  numericInput("text_size_plot", "Taille du texte", value = 12, min = 6, max = 30, step = 1)
-                ),
-                column(
-                  8,
-                  plotOutput("plot_chd", height = "70vh")
-                )
-              )
-            ),
-            tabPanel("Concordancier HTML", uiOutput("ui_concordancier_explore")),
-            tabPanel("Nuage de mots", uiOutput("ui_wordcloud")),
-            tabPanel("Statistiques", tableOutput("table_stats_classe"))
-          )
-        ),
-
-
 
         ui_resultats_chd_iramuteq(),
 

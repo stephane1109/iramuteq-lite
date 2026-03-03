@@ -295,7 +295,6 @@ server <- function(input, output, session) {
   })
 
   register_events_lancer(input, output, session, rv)
-  register_rainette_explor_affichage(input, output, session, rv)
 
   output$plot_afc_classes <- renderPlot({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
@@ -344,99 +343,6 @@ server <- function(input, output, session) {
 
     do.call(tabsetPanel, c(id = "tabs_stats_chd_iramuteq", panneaux))
   })
-
-  output$ui_concordancier_explore <- renderUI({
-    req(rv$export_dir, rv$exports_prefix)
-
-
-    if (is.null(rv$exports_prefix) || !nzchar(rv$exports_prefix)) {
-      return(tags$div(
-        style = "padding: 12px;",
-        tags$p("Préfixe de ressources invalide."),
-        tags$p("Relance l'analyse pour régénérer les exports.")
-      ))
-    }
-
-    if (!(rv$exports_prefix %in% names(shiny::resourcePaths()))) {
-      shiny::addResourcePath(rv$exports_prefix, rv$export_dir)
-    }
-
-    candidats_html <- c(
-      rv$html_file,
-      file.path(rv$export_dir, "segments_par_classe.html"),
-      file.path(rv$export_dir, "concordancier.html")
-    )
-    candidats_dyn <- list.files(
-      rv$export_dir,
-      pattern = "(segments.*classe|concord).*\\.html$",
-      ignore.case = TRUE,
-      full.names = TRUE
-    )
-    candidats_html <- c(candidats_html, candidats_dyn)
-    candidats_html <- unique(candidats_html[!is.na(candidats_html) & nzchar(candidats_html)])
-    html_existant <- candidats_html[file.exists(candidats_html)]
-
-    if (length(html_existant) == 0) {
-      return(tags$div(
-        style = "padding: 12px;",
-        tags$p("Le fichier du concordancier HTML n'est pas disponible pour cette analyse."),
-        tags$p("Relance l'analyse puis vérifie les logs si le problème persiste.")
-      ))
-    }
-
-    src_html <- html_existant[[1]]
-    nom_html <- basename(src_html)
-    src_dans_exports <- file.path(rv$export_dir, nom_html)
-
-    if (!isTRUE(file.exists(src_dans_exports))) {
-      ok_copy <- tryCatch(file.copy(src_html, src_dans_exports, overwrite = TRUE), error = function(e) FALSE)
-      if (isTRUE(ok_copy)) src_html <- src_dans_exports
-    } else {
-      src_html <- src_dans_exports
-    }
-
-    tags$iframe(
-      src = paste0("/", rv$exports_prefix, "/", basename(src_html)),
-      style = "width: 100%; height: 70vh; border: 1px solid #999;"
-    )
-  })
-
-  output$ui_wordcloud <- renderUI({
-    req(rv$export_dir, rv$exports_prefix)
-
-    classe_sel <- as.character(input$classe_viz)
-    if (length(classe_sel) != 1 || is.na(classe_sel) || !nzchar(classe_sel)) {
-      return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
-    }
-
-    src_rel <- file.path("wordclouds", paste0("cluster_", classe_sel, "_wordcloud.png"))
-    if (!file.exists(file.path(rv$export_dir, src_rel))) {
-      return(tags$p("Aucun nuage de mots disponible pour cette classe."))
-    }
-
-    tags$div(
-      style = "text-align: center;",
-      tags$img(
-        src = paste0("/", rv$exports_prefix, "/", src_rel),
-        style = "max-width: 100%; height: auto; border: 1px solid #999; display: inline-block;"
-      )
-    )
-  })
-
-  output$table_stats_classe <- renderTable({
-    req(input$classe_viz, rv$res_stats_df)
-    classe_norm <- normaliser_id_classe_ui(input$classe_viz)
-    classe_stats <- if (is.na(classe_norm)) input$classe_viz else classe_norm
-
-    extraire_stats_chd_classe(
-      rv$res_stats_df,
-      classe = classe_stats,
-      n_max = 50,
-      max_p = if (isTRUE(input$filtrer_affichage_pvalue)) input$max_p else 1,
-      seuil_p_significativite = input$max_p,
-      style = "iramuteq_clone"
-    )
-  }, rownames = FALSE, sanitize.text.function = function(x) x)
 
   output$plot_afc <- renderPlot({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
