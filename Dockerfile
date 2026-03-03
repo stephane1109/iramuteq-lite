@@ -40,4 +40,3 @@ RUN chown -R user:user /home/user/app
 
 USER user
 EXPOSE 7860
-CMD ["Rscript", "/home/user/app/rainette/start.R"]
