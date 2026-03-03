@@ -158,25 +158,12 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
     observeEvent(input$modele_chd, {
-      if (identical(as.character(input$modele_chd), "iramuteq")) {
-        updateRadioButtons(
-          session,
-          "source_dictionnaire",
-          choices = c("Lexique (fr)" = "lexique_fr"),
-          selected = "lexique_fr"
-        )
-        if (isTRUE(input$activer_ner)) {
-          updateCheckboxInput(session, "activer_ner", value = FALSE)
-          ajouter_log(rv, "Mode IRaMuTeQ-like : NER spaCy automatiquement désactivé (mode uniquement Lexique fr).")
-        }
-      } else {
-        updateRadioButtons(
-          session,
-          "source_dictionnaire",
-          choices = c("spaCy" = "spacy", "Lexique (fr)" = "lexique_fr"),
-          selected = if (identical(as.character(input$source_dictionnaire), "lexique_fr")) "lexique_fr" else "spacy"
-        )
-      }
+      updateRadioButtons(
+        session,
+        "source_dictionnaire",
+        choices = c("Lexique (fr)" = "lexique_fr"),
+        selected = "lexique_fr"
+      )
     }, ignoreInit = FALSE)
 
     output$ui_concordancier_iramuteq <- renderUI({
@@ -343,23 +330,6 @@ register_events_lancer <- function(input, output, session, rv) {
         return(invisible(NULL))
       }
 
-      if (isTRUE(input$activer_ner) && mode_iramuteq) {
-        rv$statut <- "Configuration invalide : NER indisponible en mode IRaMuTeQ-like."
-        rv$progression <- 0
-        ajouter_log(rv, "Blocage de l'analyse : NER activé en mode IRaMuTeQ-like (mode uniquement Lexique fr).")
-        showNotification(
-          "Analyse bloquée : le mode IRaMuTeQ-like fonctionne uniquement avec Lexique (fr) et sans NER spaCy.",
-          type = "error",
-          duration = 8
-        )
-        return(invisible(NULL))
-      }
-
-      if (isTRUE(input$activer_ner) && !is.null(input$fichier_ner_json) && !is.null(input$fichier_ner_json$datapath) && file.exists(input$fichier_ner_json$datapath)) {
-        rv$ner_file <- input$fichier_ner_json$datapath
-        ajouter_log(rv, paste0("NER : dictionnaire JSON importé via l'UI : ", input$fichier_ner_json$name))
-      }
-
         p <- Progress$new(session, min = 0, max = 1)
         on.exit(try(p$close(), silent = TRUE), add = TRUE)
 
@@ -467,7 +437,7 @@ register_events_lancer <- function(input, output, session, rv) {
 
           verifier_coherence_dictionnaire_langue(
             textes_chd,
-            if (identical(source_dictionnaire, "lexique_fr")) "fr" else as.character(input$spacy_langue),
+            "fr",
             rv = rv
           )
 
@@ -478,7 +448,7 @@ register_events_lancer <- function(input, output, session, rv) {
             rv,
             paste0(
               "Diagnostic pipeline: dictionnaire=", source_dictionnaire,
-              " | langue UI=", as.character(input$spacy_langue),
+              " | langue UI=fr",
               " | filtrage_morpho=", ifelse(isTRUE(input$filtrage_morpho), "1", "0"),
               " | retirer_stopwords=", ifelse(isTRUE(input$retirer_stopwords), "1", "0"),
               " | supprimer_ponctuation=", ifelse(isTRUE(input$supprimer_ponctuation), "1", "0"),
@@ -677,12 +647,8 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$filtered_corpus <- filtered_corpus_ok
           rv$res_stats_df <- NULL
 
-          avancer(0.58, "NER (si activé)")
-          rv$statut <- "NER (si activé)..."
-
-          if (isTRUE(input$activer_ner)) {
-            ajouter_log(rv, "NER ignoré : cette branche IRaMuTeQ-like est strictement sans spaCy.")
-          }
+          avancer(0.58, "Finalisation du pipeline")
+          rv$statut <- "Finalisation du pipeline..."
 
           avancer(0.62, "Exports + stats")
           rv$statut <- "Exports et statistiques..."
@@ -1055,10 +1021,8 @@ register_events_lancer <- function(input, output, session, rv) {
 
           fonction_concordancier <- if (isTRUE(mode_iramuteq_actif)) {
             generer_concordancier_iramuteq_html
-          } else if (identical(source_dictionnaire, "lexique_fr")) {
-            generer_concordancier_lexique_html
           } else {
-            generer_concordancier_spacy_html
+            generer_concordancier_iramuteq_html
           }
 
           html_genere <- do.call(fonction_concordancier, args_concordancier)

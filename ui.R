@@ -93,8 +93,6 @@ ui <- fluidPage(
     style = "font-size: 14px;",
     "Tentaive de reproduction de la CHD (Méthode Reinert) du logiciel IRaMuTeQ",
     tags$br(),
-    "En test j'ai également expérimenté la recherche de NER dans le corpus s'appuyant sur la librairie Spacy (modele \"md\").",
-    tags$br(),
     "Pour plus d’informations, vous pouvez consulter mon site : www.codeandcortex.fr",
     tags$br(),
     "version beta 0.4 - 18-02-2026"
@@ -138,27 +136,9 @@ ui <- fluidPage(
       radioButtons(
         "source_dictionnaire",
         "Source de lemmatisation",
-        choices = c("spaCy" = "spacy", "Lexique (fr)" = "lexique_fr"),
-        selected = "spacy",
+        choices = c("Lexique (fr)" = "lexique_fr"),
+        selected = "lexique_fr",
         inline = FALSE
-      ),
-      conditionalPanel(
-        condition = "input.modele_chd == 'iramuteq'",
-        tags$small("En mode IRaMuTeQ-like, seul le dictionnaire Lexique (fr) est utilisé automatiquement."),
-        tags$small("Dans ce mode, le filtrage des stopwords utilise la liste française de quanteda (pas spaCy).")
-      ),
-      conditionalPanel(
-        condition = "input.source_dictionnaire == 'spacy'",
-        selectInput(
-          "spacy_langue",
-          "Langue spaCy",
-          choices = c("Français" = "fr", "Anglais" = "en", "Espagnol" = "es", "Italien" = "it", "Allemand" = "de", "Portugais" = "pt", "Catalan" = "ca"),
-          selected = "fr"
-        )
-      ),
-      conditionalPanel(
-        condition = "input.source_dictionnaire == 'spacy'",
-        checkboxInput("spacy_utiliser_lemmes", "Lemmatisation via spaCy uniquement", value = FALSE)
       ),
       conditionalPanel(
         condition = "input.source_dictionnaire == 'lexique_fr'",
@@ -180,29 +160,15 @@ ui <- fluidPage(
       checkboxInput("nettoyage_caracteres", "Nettoyage caractères (regex)", value = FALSE),
       checkboxInput("forcer_minuscules_avant", "Passage en minuscules avant tokenisation", value = FALSE),
       checkboxInput("supprimer_ponctuation", "Supprimer la ponctuation", value = FALSE),
-      tags$small("Supprime la ponctuation à la tokenisation quanteda (remove_punct), pour les deux sources (spaCy et lexique_fr), par ex. . , ; : ! ? ' ’ \" - ( ) [ ] …"),
+      tags$small("Supprime la ponctuation à la tokenisation quanteda (remove_punct), par ex. . , ; : ! ? ' ’ \" - ( ) [ ] …"),
       checkboxInput("supprimer_chiffres", "Supprimer les chiffres (0-9)", value = FALSE),
       checkboxInput("supprimer_apostrophes", "Traiter les élisions FR (c'est→est, m'écrire→écrire)", value = FALSE),
-      checkboxInput("retirer_stopwords", "Retirer les stopwords (spaCy si source spaCy, quanteda si source Lexique fr)", value = FALSE),
+      checkboxInput("retirer_stopwords", "Retirer les stopwords (liste française quanteda)", value = FALSE),
       tags$small("La normalisation en minuscules est appliquée automatiquement avant la construction du DFM."),
       checkboxInput("filtrage_morpho", "Filtrage morphosyntaxique", value = FALSE),
-      tags$small("Le filtrage morphosyntaxique s'applique à spaCy ou lexique_fr selon la source sélectionnée."),
+      tags$small("Le filtrage morphosyntaxique s'applique à lexique_fr."),
       conditionalPanel(
         condition = "input.filtrage_morpho == true",
-        conditionalPanel(
-          condition = "input.source_dictionnaire == 'spacy'",
-          selectizeInput(
-            "pos_spacy_a_conserver",
-            "POS à conserver (spaCy)",
-            choices = c(
-              "ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN",
-              "NUM", "PART", "PRON", "PROPN", "PUNCT", "SCONJ", "SYM", "VERB", "X"
-            ),
-            selected = c("NOUN", "VERB"),
-            multiple = TRUE,
-            options = list(plugins = list("remove_button"))
-          )
-        ),
         conditionalPanel(
           condition = "input.source_dictionnaire == 'lexique_fr'",
           selectizeInput(
@@ -228,20 +194,6 @@ ui <- fluidPage(
       tags$small("Les caractères présents dans la liste entre crochets sont conservés ; tous les autres (ex. @ # & / emoji) sont remplacés par des espaces."),
       tags$small("L'option “Supprimer la ponctuation” pilote remove_punct, même si elle est autorisée par la regex ci-dessus."),
       tags$small("Cette option conserve les apostrophes lexicales (ex. aujourd'hui) et ne traite que les élisions en début de mot."),
-
-      tags$div(class = "sidebar-section-title", "Paramètres SpaCy/NER"),
-
-      checkboxInput("activer_ner", "Activer NER (spaCy)", value = FALSE),
-      uiOutput("ui_ner_lexique_incompatibilite"),
-      conditionalPanel(
-        condition = "input.activer_ner == true",
-        fileInput(
-          "fichier_ner_json",
-          "Importer un dictionnaire NER (.json)",
-          accept = c(".json", "application/json")
-        ),
-        tags$small("Optionnel : importez un dictionnaire NER JSON si vous voulez personnaliser les entités. Si vous ne fournissez pas de fichier, l'analyse utilise le NER spaCy classique.")
-      ),
 
       tags$hr(),
 
@@ -372,47 +324,10 @@ ui <- fluidPage(
         ),
         
         tabPanel(
-          "NER (beta)",
-          tags$h3("Détection d'entités nommées (spaCy)"),
-          uiOutput("ui_ner_statut"),
-          tags$h3("Résumé"),
-          tableOutput("table_ner_resume"),
-          tags$h3("Détails"),
-          tableOutput("table_ner_details"),
-          tags$h3("Nuage de mots (entités)"),
-          plotOutput("plot_ner_wordcloud", height = "520px"),
-          tags$h3("Nuages par classe"),
-          uiOutput("ui_ner_wordcloud_par_classe")
-        ),
-
-        tabPanel(
           "Aide",
           ui_aide_huggingface()
-        ),
-
-        tabPanel(
-          "Aide POS/Spacy",
-          tags$div(
-            style = "padding: 12px;",
-            if (file.exists("pos_spacy.md")) {
-              includeMarkdown("pos_spacy.md")
-            } else {
-              tags$p("Le fichier pos_spacy.md est introuvable à la racine du projet.")
-            }
-          )
-        ),
-
-        tabPanel(
-          "Aide NER",
-          tags$div(
-            style = "padding: 12px;",
-            if (file.exists("spacy_ner/ner.md")) {
-              includeMarkdown("spacy_ner/ner.md")
-            } else {
-              tags$p("Le fichier spacy_ner/ner.md est introuvable.")
-            }
-          )
         )
+
       )
     )
   )
