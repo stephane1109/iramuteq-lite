@@ -107,7 +107,12 @@ server <- function(input, output, session) {
     stats_zipf_df = NULL
   )
 
-  register_outputs_status(input, output, session, rv)
+  if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
+    register_outputs_status(input, output, session, rv)
+  } else {
+    output$statut <- renderText({ rv$statut })
+    output$logs <- renderText({ rv$logs })
+  }
 
   output$ui_afc_statut <- renderUI({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
