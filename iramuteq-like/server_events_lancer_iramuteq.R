@@ -35,6 +35,138 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
+    if (!exists("import_corpus_iramuteq", mode = "function", inherits = TRUE)) {
+      import_corpus_iramuteq <- function(chemin_fichier) {
+        lignes <- readLines(chemin_fichier, encoding = "UTF-8", warn = FALSE)
+        if (length(lignes) == 0) stop("Corpus vide : aucun contenu lisible.")
+
+        headers <- grepl("^\\*\\*\\*\\*", lignes)
+        textes <- character(0)
+        ids <- character(0)
+
+        if (any(headers)) {
+          idx <- which(headers)
+          bornes <- c(idx, length(lignes) + 1L)
+          for (i in seq_along(idx)) {
+            debut <- idx[[i]] + 1L
+            fin <- bornes[[i + 1L]] - 1L
+            contenu <- if (debut <= fin) lignes[debut:fin] else character(0)
+            contenu <- trimws(contenu)
+            contenu <- contenu[nzchar(contenu)]
+            if (length(contenu) == 0) next
+            textes <- c(textes, paste(contenu, collapse = " "))
+            ids <- c(ids, paste0("doc_", i))
+          }
+        } else {
+          lignes2 <- trimws(lignes)
+          lignes2 <- lignes2[nzchar(lignes2)]
+          if (length(lignes2) == 0) stop("Corpus vide : aucune ligne non vide.")
+          textes <- lignes2
+          ids <- paste0("doc_", seq_along(textes))
+        }
+
+        if (length(textes) == 0) stop("Corpus vide : aucune unité de texte détectée.")
+
+        quanteda::corpus(
+          data.frame(doc_id = ids, text = textes, stringsAsFactors = FALSE),
+          text_field = "text"
+        )
+      }
+    }
+
+    if (!exists("split_segments", mode = "function", inherits = TRUE)) {
+      split_segments <- function(corpus, segment_size = 40) {
+        segment_size <- suppressWarnings(as.integer(segment_size))
+        if (!is.finite(segment_size) || is.na(segment_size) || segment_size < 1) segment_size <- 40L
+
+        docs <- as.character(corpus)
+        dn <- as.character(quanteda::docnames(corpus))
+        if (!length(dn) || any(!nzchar(dn))) dn <- paste0("doc_", seq_along(docs))
+
+        out_text <- character(0)
+        out_id <- character(0)
+        out_src <- character(0)
+
+        for (i in seq_along(docs)) {
+          tok <- unlist(strsplit(docs[[i]], "\\s+", perl = TRUE), use.names = FALSE)
+          tok <- tok[nzchar(tok)]
+          if (length(tok) == 0) next
+
+          nseg <- ceiling(length(tok) / segment_size)
+          for (j in seq_len(nseg)) {
+            deb <- ((j - 1L) * segment_size) + 1L
+            fin <- min(j * segment_size, length(tok))
+            seg <- paste(tok[deb:fin], collapse = " ")
+            out_text <- c(out_text, seg)
+            out_id <- c(out_id, paste0(dn[[i]], "_seg", j))
+            out_src <- c(out_src, dn[[i]])
+          }
+        }
+
+        if (length(out_text) == 0) stop("Segmentation impossible : aucun segment généré.")
+
+        corp <- quanteda::corpus(
+          data.frame(doc_id = out_id, text = out_text, segment_source = out_src, stringsAsFactors = FALSE),
+          text_field = "text"
+        )
+        quanteda::docvars(corp, "segment_source") <- out_src
+        corp
+      }
+    }
+
+    if (!exists("calculer_stats_corpus", mode = "function", inherits = TRUE)) {
+      calculer_stats_corpus <- function(chemin_fichier, corpus_segments, nom_corpus = NULL) {
+        lignes <- tryCatch(readLines(chemin_fichier, encoding = "UTF-8", warn = FALSE), error = function(e) character(0))
+        textes <- as.character(corpus_segments)
+        tokens <- unlist(strsplit(paste(textes, collapse = " "), "\\s+", perl = TRUE), use.names = FALSE)
+        tokens <- tokens[nzchar(tokens)]
+
+        n_tokens <- length(tokens)
+        tab <- sort(table(tokens), decreasing = TRUE)
+        n_formes <- length(tab)
+        n_hapax <- if (length(tab) > 0) sum(tab == 1) else 0
+
+        metrique <- c(
+          "Nom du corpus",
+          "Nombre de textes",
+          "Nombre de mots dans le corpus",
+          "Nombre de formes",
+          "Nombre de segments de texte",
+          "Nombre d'Hapax",
+          "Loi de Zpif"
+        )
+        valeur <- c(
+          ifelse(is.null(nom_corpus) || !nzchar(nom_corpus), basename(chemin_fichier), nom_corpus),
+          as.character(sum(grepl("^\\*\\*\\*\\*", lignes))),
+          as.character(n_tokens),
+          as.character(n_formes),
+          as.character(quanteda::ndoc(corpus_segments)),
+          as.character(n_hapax),
+          "N/A"
+        )
+
+        zipf <- if (length(tab) >= 2) {
+          rang <- seq_along(tab)
+          freq <- as.numeric(tab)
+          fit <- tryCatch(stats::lm(log(freq) ~ log(rang)), error = function(e) NULL)
+          pred <- if (is.null(fit)) rep(NA_real_, length(freq)) else as.numeric(exp(stats::predict(fit)))
+          data.frame(
+            rang = rang,
+            frequence = freq,
+            pred = pred,
+            log_rang = log(rang),
+            log_frequence = log(freq),
+            log_pred = ifelse(is.na(pred), NA_real_, log(pred)),
+            stringsAsFactors = FALSE
+          )
+        } else {
+          NULL
+        }
+
+        list(table = data.frame(Metrique = metrique, Valeur = valeur, stringsAsFactors = FALSE), zipf = zipf)
+      }
+    }
+
     charger_module_langue <- function() {
       candidats_langue <- unique(c(
         file.path(app_dir, "iramuteq-like", "nlp_lexique_iramuteq.R"),
