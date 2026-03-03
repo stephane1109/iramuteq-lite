@@ -152,15 +152,16 @@ server <- function(input, output, session) {
     )
   })
 
-  output$ui_spacy_langue_detection <- renderUI({
-    if (identical(input$source_dictionnaire, "lexique_fr")) {
-      return(NULL)
-    }
-
   output$ui_ner_lexique_incompatibilite <- renderUI({
     if (!isTRUE(input$activer_ner) || !identical(input$source_dictionnaire, "lexique_fr")) {
       return(NULL)
     }
+
+    tags$div(
+      style = "margin: 8px 0; padding: 8px; border: 1px solid #f5c2c7; background: #fff5f5; color: #842029;",
+      "Le NER s'appuie sur spaCy : sélectionne la source de dictionnaire \"spaCy\" pour l'activer."
+    )
+  })
 
   output$ui_corpus_preview <- renderUI({
     fichier <- input$fichier_corpus
@@ -322,6 +323,16 @@ server <- function(input, output, session) {
     tracer_afc_classes_seules(rv$afc_obj, axes = c(1, 2), cex_labels = 1.05)
   })
 
+  output$ui_tables_stats_chd_iramuteq <- renderUI({
+    req(rv$res_stats_df)
+
+    col_classes <- intersect(c("cluster", "classe", "Classe", "Class"), names(rv$res_stats_df))
+    req(length(col_classes) > 0)
+    classes <- unique(as.character(rv$res_stats_df[[col_classes[[1]]]]))
+    classes <- classes[!is.na(classes) & nzchar(classes)]
+    classes <- sort(classes)
+    req(length(classes) > 0)
+
     panneaux <- lapply(classes, function(cl) {
       output_id <- paste0("table_stats_chd_iramuteq_cl_", cl)
 
@@ -345,6 +356,9 @@ server <- function(input, output, session) {
 
     do.call(tabsetPanel, c(id = "tabs_stats_chd_iramuteq", panneaux))
   })
+
+  output$ui_concordancier_explore <- renderUI({
+    req(rv$export_dir, rv$exports_prefix)
 
 
     if (is.null(rv$exports_prefix) || !nzchar(rv$exports_prefix)) {
@@ -398,6 +412,19 @@ server <- function(input, output, session) {
       style = "width: 100%; height: 70vh; border: 1px solid #999;"
     )
   })
+
+  output$ui_wordcloud <- renderUI({
+    req(rv$export_dir, rv$exports_prefix)
+
+    classe_sel <- as.character(input$classe_viz)
+    if (length(classe_sel) != 1 || is.na(classe_sel) || !nzchar(classe_sel)) {
+      return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
+    }
+
+    src_rel <- file.path("wordclouds", paste0("cluster_", classe_sel, "_wordcloud.png"))
+    if (!file.exists(file.path(rv$export_dir, src_rel))) {
+      return(tags$p("Aucun nuage de mots disponible pour cette classe."))
+    }
 
     tags$div(
       style = "text-align: center;",

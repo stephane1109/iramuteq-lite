@@ -164,8 +164,6 @@ ui <- fluidPage(
         condition = "input.source_dictionnaire == 'lexique_fr'",
         checkboxInput("lexique_utiliser_lemmes", "Lemmatisation via les lemmes de lexique_fr (forme → c_lemme)", value = TRUE)
       ),
-      uiOutput("ui_spacy_langue_detection"),
-
 
       tags$div(class = "sidebar-section-title", "Nettoyage"),
 
