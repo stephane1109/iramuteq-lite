@@ -192,6 +192,44 @@ register_events_lancer <- function(input, output, session, rv) {
       appliquer_nettoyage_iramuteq <- appliquer_nettoyage_rainette
     }
 
+    executer_pipeline_iramuteq <- function(input, rv, textes_chd) {
+      if (is.null(textes_chd)) {
+        stop("IRaMuTeQ-like: textes_chd manquant pour la préparation du pipeline.")
+      }
+
+      textes_chr <- as.character(textes_chd)
+      ids_docs <- names(textes_chd)
+      if (is.null(ids_docs) || length(ids_docs) != length(textes_chr)) {
+        ids_docs <- paste0("doc_", seq_along(textes_chr))
+      }
+
+      tok <- quanteda::tokens(
+        textes_chr,
+        remove_punct = isTRUE(input$supprimer_ponctuation),
+        remove_numbers = isTRUE(input$supprimer_chiffres)
+      )
+      quanteda::docnames(tok) <- ids_docs
+
+      if (isTRUE(input$retirer_stopwords)) {
+        stop_fr <- quanteda::stopwords("fr")
+        tok <- quanteda::tokens_remove(tok, pattern = stop_fr)
+      }
+
+      if (isTRUE(input$filtrage_morpho)) {
+        ajouter_log(rv, "IRaMuTeQ-like: filtrage morphologique demandé mais indisponible (source lexique_fr forcée) ; étape ignorée.")
+      }
+
+      dfm_obj <- quanteda::dfm(tok)
+      quanteda::docnames(dfm_obj) <- ids_docs
+
+      list(
+        tok = tok,
+        dfm_obj = dfm_obj,
+        langue_reference = "fr",
+        source_dictionnaire = "lexique_fr"
+      )
+    }
+
 
     executer_textprepa_iramuteq <- function(ids, textes, input, rv) {
       candidats_script <- unique(c(
