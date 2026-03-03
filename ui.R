@@ -123,11 +123,6 @@ ui <- fluidPage(
       ),
 
       conditionalPanel(
-        condition = "input.modele_chd == 'rainette'",
-        ui_options_rainette()
-      ),
-
-      conditionalPanel(
         condition = "input.modele_chd == 'iramuteq'",
         ui_options_iramuteq()
       ),
