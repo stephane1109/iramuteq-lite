@@ -286,10 +286,6 @@ server <- function(input, output, session) {
 
   register_events_lancer(input, output, session, rv)
 
-  if (exists("register_rainette_explor_affichage", mode = "function", inherits = TRUE)) {
-    register_rainette_explor_affichage(input, output, session, rv)
-  }
-
   output$plot_afc_classes <- renderPlot({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
       plot.new()
