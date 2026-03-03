@@ -350,7 +350,9 @@ register_events_lancer <- function(input, output, session, rv) {
         return(invisible(NULL))
       }
 
-        p <- Progress$new(session, min = 0, max = 1)
+        # Utilise une notification de progression non bloquante.
+        # Le style par défaut peut afficher un voile gris modal sur toute l'application.
+        p <- Progress$new(session, min = 0, max = 1, style = "notification")
         on.exit(try(p$close(), silent = TRUE), add = TRUE)
 
         avancer <- function(valeur, detail) {
