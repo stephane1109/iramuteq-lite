@@ -9,6 +9,32 @@ register_events_lancer <- function(input, output, session, rv) {
     if (is.null(app_dir) || !nzchar(app_dir)) app_dir <- getwd()
     env_modules <- environment()
 
+    if (!exists("ajouter_log", mode = "function", inherits = TRUE)) {
+      ajouter_log <- function(rv, message) {
+        if (is.null(rv)) return(invisible(NULL))
+        msg <- as.character(message)
+        if (!length(msg) || is.na(msg) || !nzchar(msg)) return(invisible(NULL))
+
+        precedent <- rv$logs
+        if (is.null(precedent) || !nzchar(precedent)) {
+          rv$logs <- msg
+        } else {
+          rv$logs <- paste(precedent, msg, sep = "\n")
+        }
+        invisible(NULL)
+      }
+    }
+
+    if (!exists("md5_fichier", mode = "function", inherits = TRUE)) {
+      md5_fichier <- function(path) {
+        if (is.null(path) || !nzchar(path) || !file.exists(path)) return(NA_character_)
+
+        md5 <- tryCatch(unname(tools::md5sum(path)[[1]]), error = function(e) NA_character_)
+        if (is.null(md5) || !length(md5) || is.na(md5) || !nzchar(md5)) return(NA_character_)
+        as.character(md5)
+      }
+    }
+
     charger_module_langue <- function() {
       candidats_langue <- unique(c(
         file.path(app_dir, "iramuteq-like", "nlp_lexique_iramuteq.R"),
@@ -350,7 +376,9 @@ register_events_lancer <- function(input, output, session, rv) {
         return(invisible(NULL))
       }
 
-        p <- Progress$new(session, min = 0, max = 1)
+        # Utilise une notification de progression non bloquante.
+        # Le style par défaut peut afficher un voile gris modal sur toute l'application.
+        p <- Progress$new(session, min = 0, max = 1, style = "notification")
         on.exit(try(p$close(), silent = TRUE), add = TRUE)
 
         avancer <- function(valeur, detail) {
