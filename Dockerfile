@@ -1,6 +1,4 @@
 # Rôle du fichier: Dockerfile porte une partie du pipeline d'analyse Rainette.
-# Ce script centralise une responsabilité métier/technique utilisée par l'application.
-
 FROM rocker/r2u:22.04
 
 ENV LANG=C.UTF-8
