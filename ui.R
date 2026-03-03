@@ -87,11 +87,11 @@ ui <- fluidPage(
 
   tags$h2(
     style = "color: #1e5aa8;",
-    "CHD - AFC avec Rainette sur corpus IRaMuTeQ"
+    "IRaMuTeQ-Lite"
   ),
   tags$p(
     style = "font-size: 14px;",
-    "Le script est basé sur le package Rainette de Julien Barnier. L’exercice ici consiste à rendre fonctionnelles, sur un serveur distant, l’analyse CHD et l’AFC",
+    "Tentaive de reproduction de la CHD (Méthode Reinert) du logiciel IRaMuTeQ",
     tags$br(),
     "En test j'ai également expérimenté la recherche de NER dans le corpus s'appuyant sur la librairie Spacy (modele \"md\").",
     tags$br(),
@@ -106,12 +106,11 @@ ui <- fluidPage(
 
       radioButtons(
         "modele_chd",
-        "Méthode Iramuteq-like ou rainette",
+        "Méthode Iramuteq-like",
         choices = c(
-          "Rainette" = "rainette",
           "IRaMuTeQ-like" = "iramuteq"
         ),
-        selected = "rainette",
+        selected = "iramuteq",
         inline = FALSE
       ),
 
