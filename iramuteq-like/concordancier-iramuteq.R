@@ -2,6 +2,78 @@
 # Le rendu suit le style Rainette (segments par classe + surlignage),
 # avec une sélection des termes alignée sur les filtres statistiques IRaMuTeQ-like.
 
+if (!exists("expandir_variantes_termes", mode = "function")) {
+  expandir_variantes_termes <- function(termes) {
+    termes <- as.character(termes)
+    termes <- trimws(termes)
+    termes <- termes[nzchar(termes)]
+    unique(c(termes, tolower(termes)))
+  }
+}
+
+if (!exists(".echapper_regex", mode = "function")) {
+  .echapper_regex <- function(x) {
+    gsub("([][{}()+*^$|\\?.])", "\\\\\\1", x, perl = TRUE)
+  }
+}
+
+if (!exists("preparer_motifs_surlignage_nfd", mode = "function")) {
+  preparer_motifs_surlignage_nfd <- function(termes, taille_lot = 80) {
+    termes <- expandir_variantes_termes(termes)
+    if (!length(termes)) return(character(0))
+    escaped <- .echapper_regex(termes)
+    lots <- split(escaped, ceiling(seq_along(escaped) / max(1L, as.integer(taille_lot))))
+    vapply(lots, function(xs) paste0("(?i)(", paste(xs, collapse = "|"), ")"), character(1))
+  }
+}
+
+if (!exists("surligner_vecteur_html_unicode", mode = "function")) {
+  surligner_vecteur_html_unicode <- function(textes, motifs, prefix = "<span class='highlight'>", suffix = "</span>", on_error = NULL) {
+    textes <- as.character(textes)
+    if (!length(textes) || !length(motifs)) return(textes)
+
+    out <- textes
+    for (pat in motifs) {
+      out <- vapply(out, function(txt) {
+        tryCatch(
+          gsub(pat, paste0(prefix, "\\1", suffix), txt, perl = TRUE),
+          error = function(e) {
+            if (!is.null(on_error)) on_error(e, pat)
+            txt
+          }
+        )
+      }, character(1))
+    }
+    out
+  }
+}
+
+if (!exists("echapper_segments_en_preservant_surlignage", mode = "function")) {
+  echapper_segments_en_preservant_surlignage <- function(segments, open_tag, close_tag) {
+    segments <- as.character(segments)
+    sentinel_open <- "___HLOPEN___"
+    sentinel_close <- "___HLCLOSE___"
+
+    x <- gsub(open_tag, sentinel_open, segments, fixed = TRUE)
+    x <- gsub(close_tag, sentinel_close, x, fixed = TRUE)
+    x <- htmltools::htmlEscape(x)
+    x <- gsub(sentinel_open, open_tag, x, fixed = TRUE)
+    gsub(sentinel_close, close_tag, x, fixed = TRUE)
+  }
+}
+
+if (!exists("detecter_segments_contenant_termes_unicode", mode = "function")) {
+  detecter_segments_contenant_termes_unicode <- function(textes, termes) {
+    textes <- as.character(textes)
+    termes <- expandir_variantes_termes(termes)
+    if (!length(textes)) return(logical(0))
+    if (!length(termes)) return(rep(FALSE, length(textes)))
+
+    pat <- paste0("(?i)", paste(.echapper_regex(termes), collapse = "|"))
+    grepl(pat, textes, perl = TRUE)
+  }
+}
+
 .generer_concordancier_iramuteq_termes <- function(res_stats_df, classe, max_p = 1, filtrer_pvalue = TRUE) {
   if (is.null(res_stats_df) || nrow(res_stats_df) == 0) return(character(0))
   if (!all(c("Classe", "Terme") %in% names(res_stats_df))) return(character(0))

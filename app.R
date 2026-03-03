@@ -37,7 +37,6 @@ if (file.exists("help.md")) {
 
 source("iramuteq-like/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("spacy_ner/concordancier_ner.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/affichage_iramuteq-like.R", encoding = "UTF-8", local = TRUE)
@@ -61,7 +60,6 @@ server <- function(input, output, session) {
     segments_file = NULL,
     stats_file = NULL,
     html_file = NULL,
-    ner_file = NULL,
     zip_file = NULL,
 
     res = NULL,
@@ -78,12 +76,8 @@ server <- function(input, output, session) {
 
     exports_prefix = paste0("exports_", session$token),
 
-    spacy_tokens_df = NULL,
     lexique_fr_df = NULL,
     textes_indexation = NULL,
-
-    ner_df = NULL,
-    ner_nb_segments = NA_integer_,
 
     afc_obj = NULL,
     afc_erreur = NULL,
@@ -138,17 +132,6 @@ server <- function(input, output, session) {
           msg
         )
       })
-    )
-  })
-
-  output$ui_ner_lexique_incompatibilite <- renderUI({
-    if (!isTRUE(input$activer_ner) || !identical(input$source_dictionnaire, "lexique_fr")) {
-      return(NULL)
-    }
-
-    tags$div(
-      style = "margin: 8px 0; padding: 8px; border: 1px solid #f5c2c7; background: #fff5f5; color: #842029;",
-      "Le NER s'appuie sur spaCy : sélectionne la source de dictionnaire \"spaCy\" pour l'activer."
     )
   })
 
