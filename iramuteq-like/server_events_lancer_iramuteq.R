@@ -25,6 +25,16 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
+    if (!exists("md5_fichier", mode = "function", inherits = TRUE)) {
+      md5_fichier <- function(path) {
+        if (is.null(path) || !nzchar(path) || !file.exists(path)) return(NA_character_)
+
+        md5 <- tryCatch(unname(tools::md5sum(path)[[1]]), error = function(e) NA_character_)
+        if (is.null(md5) || !length(md5) || is.na(md5) || !nzchar(md5)) return(NA_character_)
+        as.character(md5)
+      }
+    }
+
     charger_module_langue <- function() {
       candidats_langue <- unique(c(
         file.path(app_dir, "iramuteq-like", "nlp_lexique_iramuteq.R"),
