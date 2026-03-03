@@ -157,80 +157,10 @@ server <- function(input, output, session) {
       return(NULL)
     }
 
-    if (is.null(rv$filtered_corpus)) {
-      return(tags$p("Détection langue : charge et lance une analyse pour afficher une estimation."))
-    }
-
-    est <- estimer_langue_corpus(as.character(rv$filtered_corpus))
-    if (is.na(est$code)) {
-      return(tags$p("Détection langue : estimation indisponible."))
-    }
-
-    cfg_est <- configurer_langue_spacy(est$code)
-    cfg_sel <- configurer_langue_spacy(if (identical(input$source_dictionnaire, "lexique_fr")) "fr" else input$spacy_langue)
-    src_dic <- if (identical(input$source_dictionnaire, "lexique_fr")) "Lexique (fr)" else "spaCy"
-
-    msg <- paste0(
-      "Langue estimée du corpus : ", cfg_est$libelle,
-      " (scores stopwords FR=", sprintf("%.3f", est$scores[["fr"]]),
-      ", EN=", sprintf("%.3f", est$scores[["en"]]),
-      ", ES=", sprintf("%.3f", est$scores[["es"]]),
-      ", DE=", sprintf("%.3f", est$scores[["de"]]), ")."
-    )
-
-    if (!identical(cfg_est$code, cfg_sel$code)) {
-      return(tags$div(
-        style = "border:1px solid #f5c2c7;background:#f8d7da;color:#842029;padding:10px;border-radius:4px;",
-        tags$p(style = "margin:0;", paste0(msg, " Dictionnaire actif : ", src_dic, " (langue ", toupper(cfg_sel$code), ")."))
-      ))
-    }
-
-    tags$div(
-      style = "border:1px solid #badbcc;background:#d1e7dd;color:#0f5132;padding:10px;border-radius:4px;",
-      tags$p(style = "margin:0;", paste0(msg, " Dictionnaire actif : ", src_dic, " (langue ", toupper(cfg_sel$code), ")."))
-    )
-  })
-
-  output$ui_ner_statut <- renderUI({
-    if (!isTRUE(input$activer_ner)) {
-      return(tags$p("NER désactivé. Coche 'Activer NER (spaCy)' puis relance l'analyse."))
-    }
-
-    if (is.null(rv$ner_df)) {
-      return(tags$p("NER activé, mais aucun résultat disponible. Relance une analyse complète."))
-    }
-
-    nb_ent <- nrow(rv$ner_df)
-    nb_seg <- ifelse(is.na(rv$ner_nb_segments), 0, rv$ner_nb_segments)
-
-    source_dico <- "Aucun dictionnaire JSON personnalisé."
-    if (!is.null(rv$ner_file) && nzchar(as.character(rv$ner_file)) && file.exists(rv$ner_file)) {
-      source_dico <- paste0("Dictionnaire JSON personnalisé importé : ", basename(rv$ner_file), ".")
-    } else {
-      dico_env <- trimws(Sys.getenv("RAINETTE_NER_JSON", unset = ""))
-      if (nzchar(dico_env)) {
-        source_dico <- paste0("Dictionnaire JSON personnalisé via variable d'environnement : ", dico_env, ".")
-      }
-    }
-
-    tags$div(
-      tags$p(paste0("NER calculé sur ", nb_seg, " segments. Entités détectées : ", nb_ent, ".")),
-      tags$p(source_dico)
-    )
-  })
-
   output$ui_ner_lexique_incompatibilite <- renderUI({
     if (!isTRUE(input$activer_ner) || !identical(input$source_dictionnaire, "lexique_fr")) {
       return(NULL)
     }
-
-    tags$div(
-      style = "border:1px solid #f5c2c7;background:#f8d7da;color:#842029;padding:10px;border-radius:4px;margin:8px 0;",
-      tags$strong("Incompatibilité détectée : "),
-      tags$span("le NER n'est pas disponible avec la source de lemmatisation \"Lexique (fr)\". "),
-      tags$span("Désactive \"Activer NER (spaCy)\" ou bascule la source vers \"spaCy\" avant de lancer l'analyse.")
-    )
-  })
 
   output$ui_corpus_preview <- renderUI({
     fichier <- input$fichier_corpus
@@ -356,79 +286,6 @@ server <- function(input, output, session) {
     )
   })
 
-  output$table_ner_resume <- renderTable({
-    req(rv$ner_df)
-    if (nrow(rv$ner_df) == 0) return(data.frame(Message = "Aucune entité détectée.", stringsAsFactors = FALSE))
-
-    as.data.frame(sort(table(rv$ner_df$ent_label), decreasing = TRUE), stringsAsFactors = FALSE) |>
-      dplyr::rename(Type = Var1, Effectif = Freq)
-  }, rownames = FALSE)
-
-  output$table_ner_details <- renderTable({
-    req(rv$ner_df)
-    if (nrow(rv$ner_df) == 0) return(data.frame(Message = "Aucune entité détectée.", stringsAsFactors = FALSE))
-
-    df <- rv$ner_df[, intersect(c("Classe", "doc_id", "ent_text", "ent_label", "segment_texte"), names(rv$ner_df)), drop = FALSE]
-    head(df, 200)
-  }, rownames = FALSE)
-
-  output$plot_ner_wordcloud <- renderPlot({
-    req(rv$ner_df)
-    if (nrow(rv$ner_df) == 0) {
-      plot.new()
-      text(0.5, 0.5, "Aucune entité détectée.", cex = 1.1)
-      return(invisible(NULL))
-    }
-
-    freq <- sort(table(rv$ner_df$ent_text), decreasing = TRUE)
-    suppressWarnings(wordcloud(
-      words = names(freq),
-      freq = as.numeric(freq),
-      min.freq = 1,
-      max.words = min(150, length(freq)),
-      random.order = FALSE,
-      colors = brewer.pal(8, "Dark2")
-    ))
-  })
-
-  output$ui_ner_wordcloud_par_classe <- renderUI({
-    req(rv$ner_df)
-    if (nrow(rv$ner_df) == 0 || !"Classe" %in% names(rv$ner_df)) return(tags$p("Aucune entité à afficher par classe."))
-
-    classes <- sort(unique(rv$ner_df$Classe))
-    if (length(classes) == 0) return(tags$p("Aucune classe disponible pour l'affichage."))
-
-    tagList(lapply(classes, function(cl) {
-      nm <- paste0("plot_ner_wordcloud_cl_", cl)
-      local({
-        cl_local <- cl
-        output[[nm]] <- renderPlot({
-          df_cl <- rv$ner_df[rv$ner_df$Classe == cl_local, , drop = FALSE]
-          if (nrow(df_cl) == 0) {
-            plot.new()
-            text(0.5, 0.5, paste0("Classe ", cl_local, " : aucune entité."), cex = 1.1)
-            return(invisible(NULL))
-          }
-
-          freq <- sort(table(df_cl$ent_text), decreasing = TRUE)
-          suppressWarnings(wordcloud(
-            words = names(freq),
-            freq = as.numeric(freq),
-            min.freq = 1,
-            max.words = min(120, length(freq)),
-            random.order = FALSE,
-            colors = brewer.pal(8, "Set2")
-          ))
-        })
-      })
-
-      tagList(
-        tags$h4(paste0("Classe ", cl)),
-        plotOutput(nm, height = "360px")
-      )
-    }))
-  })
-
   output$ui_chd_statut <- renderUI({
     if (is.null(rv$res)) {
       return(tags$p("CHD non disponible. Lance une analyse."))
@@ -465,47 +322,6 @@ server <- function(input, output, session) {
     tracer_afc_classes_seules(rv$afc_obj, axes = c(1, 2), cex_labels = 1.05)
   })
 
-  output$plot_chd_iramuteq_dendro <- renderPlot({
-    if (!identical(rv$res_type, "iramuteq")) {
-      plot.new()
-      text(0.5, 0.5, "Dendrogramme IRaMuTeQ-like indisponible (mode Rainette actif).", cex = 1.05)
-      return(invisible(NULL))
-    }
-
-    req(rv$res)
-
-    tryCatch({
-      tracer_dendogramme_iramuteq_ui(
-        rv = rv,
-        top_n_terms = 4,
-        orientation = "vertical",
-        display_method = if (!is.null(input$iramuteq_dendro_display_method) && nzchar(input$iramuteq_dendro_display_method)) {
-          input$iramuteq_dendro_display_method
-        } else {
-          "compact"
-        }
-      )
-    }, error = function(e) {
-      plot.new()
-      text(0.5, 0.5, paste0("Erreur dendrogramme IRaMuTeQ-like: ", conditionMessage(e)), cex = 0.95)
-      invisible(NULL)
-    })
-  })
-
-  output$ui_tables_stats_chd_iramuteq <- renderUI({
-    if (!identical(rv$res_type, "iramuteq")) {
-      return(tags$p("Résultats CHD IRaMuTeQ-like indisponibles (mode Rainette actif)."))
-    }
-
-    req(rv$res_stats_df)
-    req("Classe" %in% names(rv$res_stats_df))
-
-    classes <- sort(unique(suppressWarnings(as.numeric(rv$res_stats_df$Classe))))
-    classes <- classes[is.finite(classes)]
-    if (length(classes) == 0) {
-      return(tags$p("Aucune classe disponible pour les statistiques CHD."))
-    }
-
     panneaux <- lapply(classes, function(cl) {
       output_id <- paste0("table_stats_chd_iramuteq_cl_", cl)
 
@@ -530,25 +346,6 @@ server <- function(input, output, session) {
     do.call(tabsetPanel, c(id = "tabs_stats_chd_iramuteq", panneaux))
   })
 
-
-  normaliser_id_classe_ui <- function(x) {
-    x_chr <- trimws(as.character(x))
-    if (!length(x_chr) || is.na(x_chr) || !nzchar(x_chr)) return(NA_integer_)
-
-    x_num <- suppressWarnings(as.integer(x_chr))
-    if (!is.na(x_num)) return(x_num)
-
-    extrait <- sub("^.*?(\\d+).*$", "\\1", x_chr)
-    if (!grepl("\\d", x_chr)) return(NA_integer_)
-    suppressWarnings(as.integer(extrait))
-  }
-
-  output$ui_concordancier_iramuteq <- renderUI({
-    req(rv$export_dir)
-
-    if (!identical(rv$res_type, "iramuteq")) {
-      return(tags$p("Concordancier IRaMuTeQ-like indisponible (mode Rainette actif)."))
-    }
 
     if (is.null(rv$exports_prefix) || !nzchar(rv$exports_prefix)) {
       return(tags$div(
@@ -602,23 +399,6 @@ server <- function(input, output, session) {
     )
   })
 
-  output$ui_wordcloud_iramuteq <- renderUI({
-    req(rv$export_dir, rv$exports_prefix)
-
-    if (!identical(rv$res_type, "iramuteq")) {
-      return(tags$p("Nuage de mots IRaMuTeQ-like indisponible (mode Rainette actif)."))
-    }
-
-    classe_norm <- normaliser_id_classe_ui(input$classe_viz_iramuteq)
-    if (is.na(classe_norm)) {
-      return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
-    }
-
-    src_rel <- file.path("wordclouds", paste0("cluster_", classe_norm, "_wordcloud.png"))
-    if (!file.exists(file.path(rv$export_dir, src_rel))) {
-      return(tags$p("Aucun nuage de mots disponible pour cette classe."))
-    }
-
     tags$div(
       style = "text-align: center;",
       tags$img(
@@ -626,90 +406,6 @@ server <- function(input, output, session) {
         style = "max-width: 100%; height: auto; border: 1px solid #999; display: inline-block;"
       )
     )
-  })
-
-  output$plot_chd <- renderPlot({
-    req(!is.null(input$measure_plot), !is.null(input$type_plot), !is.null(input$n_terms_plot))
-
-    if (identical(rv$res_type, "iramuteq")) {
-      plot.new()
-      text(0.5, 0.5, "Explore rainette indisponible en mode IRaMuTeQ-like.", cex = 1.05)
-      return(invisible(NULL))
-    }
-
-    req(rv$res_chd, rv$dfm_chd)
-    req(!is.null(input$k_plot))
-
-    same_scales <- isTRUE(input$same_scales_plot)
-    show_negative <- isTRUE(input$show_negative_plot)
-
-    rainette_plot(
-      rv$res_chd,
-      rv$dfm_chd,
-      k = input$k_plot,
-      type = input$type_plot,
-      n_terms = input$n_terms_plot,
-      free_scales = !same_scales,
-      measure = input$measure_plot,
-      show_negative = show_negative,
-      text_size = input$text_size_plot
-    )
-  })
-
-  output$plot_chd_rainette_dendro <- renderPlot({
-    if (identical(rv$res_type, "iramuteq")) {
-      plot.new()
-      text(0.5, 0.5, "Dendrogramme Rainette indisponible en mode IRaMuTeQ-like.", cex = 1.05)
-      return(invisible(NULL))
-    }
-
-    req(rv$res_chd)
-
-    tryCatch({
-      rainette_plot(rv$res_chd)
-    }, error = function(e) {
-      plot.new()
-      text(0.5, 0.5, paste0("Erreur dendrogramme Rainette: ", conditionMessage(e)), cex = 0.95)
-      invisible(NULL)
-    })
-  })
-
-  output$ui_wordcloud <- renderUI({
-    req(input$classe_viz, rv$exports_prefix, rv$export_dir)
-
-    classe_norm <- normaliser_id_classe_ui(input$classe_viz)
-    if (is.na(classe_norm)) {
-      return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
-    }
-
-    candidats <- c(
-      file.path("wordclouds", paste0("cluster_", input$classe_viz, "_wordcloud.png")),
-      file.path("wordclouds", paste0("cluster_", classe_norm, "_wordcloud.png"))
-    )
-    src_rel <- candidats[file.exists(file.path(rv$export_dir, candidats))][1]
-
-    if (is.na(src_rel) || !nzchar(src_rel)) {
-      return(tags$p("Aucun nuage de mots disponible pour cette classe."))
-    }
-
-    tags$div(
-      style = "text-align: center;",
-      tags$img(
-        src = paste0("/", rv$exports_prefix, "/", src_rel),
-        style = "max-width: 100%; height: auto; border: 1px solid #999; display: inline-block;"
-      )
-    )
-  })
-
-  output$ui_cooc <- renderUI({
-    req(input$classe_viz, rv$exports_prefix, rv$export_dir)
-
-    src_rel <- file.path("cooccurrences", paste0("cluster_", input$classe_viz, "_fcm_network.png"))
-    if (!file.exists(file.path(rv$export_dir, src_rel))) {
-      return(tags$p("Aucune cooccurrence disponible pour cette classe."))
-    }
-
-    tags$img(src = paste0("/", rv$exports_prefix, "/", src_rel), style = "max-width: 100%; height: auto; border: 1px solid #999;")
   })
 
   output$table_stats_classe <- renderTable({
