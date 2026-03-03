@@ -1,8 +1,0 @@
-{
-  "exclude_texts": ["ça", "«", "»"],
-  "exclude_labels": ["MISC"],
-  "include": [
-    {"text": "OpenAI", "label": "ORG"},
-    {"text": "ChatGPT", "label": "PRODUCT"}
-  ]
-}
