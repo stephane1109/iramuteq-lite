@@ -1,4 +1,0 @@
-# Rôle du fichier: gitignore définit les règles Git appliquées au dépôt.
-# Ce fichier contrôle le suivi des contenus et la normalisation associée.
-# Il évite les écarts de versionnement et garantit une base de travail stable.
-.DS_Store
