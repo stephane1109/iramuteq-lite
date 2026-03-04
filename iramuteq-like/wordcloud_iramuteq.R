@@ -40,26 +40,35 @@ generer_wordclouds_iramuteq <- function(res_stats_df,
     }
     if (nrow(df_stats_cl) == 0) next
 
+    termes_vals <- as.character(df_stats_cl[[terme_col]])
     chi2_vals <- suppressWarnings(as.numeric(df_stats_cl[[chi2_col]]))
-    df_stats_cl <- df_stats_cl[is.finite(chi2_vals) & !is.na(chi2_vals), , drop = FALSE]
+    termes_ok <- !is.na(termes_vals) & nzchar(trimws(termes_vals))
+    chi2_ok <- is.finite(chi2_vals) & !is.na(chi2_vals)
+    df_stats_cl <- df_stats_cl[termes_ok & chi2_ok, , drop = FALSE]
     if (nrow(df_stats_cl) == 0) next
 
     chi2_vals <- suppressWarnings(as.numeric(df_stats_cl[[chi2_col]]))
     df_stats_cl <- df_stats_cl[order(-chi2_vals), , drop = FALSE]
     df_stats_cl <- head(df_stats_cl, top_n)
 
+    termes_wc <- as.character(df_stats_cl[[terme_col]])
+    freq_wc <- pmax(suppressWarnings(as.numeric(df_stats_cl[[chi2_col]])), 0)
+    idx_wc <- !is.na(termes_wc) & nzchar(trimws(termes_wc)) & is.finite(freq_wc) & !is.na(freq_wc)
+    termes_wc <- termes_wc[idx_wc]
+    freq_wc <- freq_wc[idx_wc]
+    if (!length(termes_wc) || !length(freq_wc)) next
+
     wc_png <- file.path(wordcloud_dir, paste0("cluster_", cl, "_wordcloud.png"))
     try({
       png(wc_png, width = 800, height = 600)
-      chi2_vals <- suppressWarnings(as.numeric(df_stats_cl[[chi2_col]]))
       suppressWarnings(wordcloud::wordcloud(
-        words = as.character(df_stats_cl[[terme_col]]),
-        freq = pmax(chi2_vals, 0),
+        words = termes_wc,
+        freq = freq_wc,
         scale = c(8, 0.8),
         min.freq = 0,
         random.order = FALSE,
         rot.per = 0,
-        max.words = nrow(df_stats_cl),
+        max.words = length(termes_wc),
         colors = RColorBrewer::brewer.pal(8, "Dark2")
       ))
       dev.off()
