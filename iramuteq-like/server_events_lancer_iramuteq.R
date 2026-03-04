@@ -271,9 +271,10 @@ register_events_lancer <- function(input, output, session, rv) {
 
 
     calculer_min_docfreq_iramuteq <- function(n_segments) {
-      n_segments <- suppressWarnings(as.integer(n_segments))
-      if (!is.finite(n_segments) || is.na(n_segments) || n_segments < 1L) return(1L)
-      as.integer(max(1L, floor(sqrt(n_segments))))
+      # Stabilisation: la formule auto historique peut devenir trop restrictive
+      # sur certains corpus et conduire à des sorties dégénérées.
+      # On fixe explicitement la valeur auto à 2.
+      2L
     }
 
     lire_min_docfreq_iramuteq <- function(min_docfreq_mode, n_segments) {
@@ -282,7 +283,7 @@ register_events_lancer <- function(input, output, session, rv) {
       if (is.null(mode_brut) || !length(mode_brut)) mode_brut <- "A"
       if (!nzchar(mode_brut)) mode_brut <- "A"
 
-      if (toupper(mode_brut) == "A") {
+      if (grepl("^A", toupper(mode_brut))) {
         return(list(
           valeur = valeur_auto,
           auto = valeur_auto,
