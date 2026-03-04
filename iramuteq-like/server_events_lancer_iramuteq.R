@@ -784,7 +784,7 @@ register_events_lancer <- function(input, output, session, rv) {
             classif_mode = classif_mode_iramuteq,
             svd_method = svd_method_iramuteq,
             mode_patate = isTRUE(input$iramuteq_mode_patate),
-            binariser = TRUE
+            binariser = FALSE
           )
 
           groupes <- as.integer(res_ira$classes)
