@@ -926,8 +926,9 @@ register_events_lancer <- function(input, output, session, rv) {
             if (!is.null(input$afc_reduire_chevauchement)) activer_repel <- isTRUE(input$afc_reduire_chevauchement)
 
             taille_sel <- "frequency"
-            if (!is.null(input$afc_taille_mots) && nzchar(as.character(input$afc_taille_mots))) {
-              taille_sel <- as.character(input$afc_taille_mots)
+            taille_sel_input <- as.character(input$afc_taille_mots)
+            if (length(taille_sel_input) > 0 && !is.na(taille_sel_input[[1]]) && nzchar(taille_sel_input[[1]])) {
+              taille_sel <- taille_sel_input[[1]]
             }
             if (!taille_sel %in% c("frequency", "chi2")) taille_sel <- "frequency"
 
