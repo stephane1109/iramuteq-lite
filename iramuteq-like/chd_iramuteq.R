@@ -108,13 +108,16 @@ preparer_entrees_chd_iramuteq <- function(
 
 .trouver_rscripts_iramuteq <- function(base_dir = NULL) {
   scripts <- c("anacor.R", "CHD.R", "chdtxt.R")
-    candidats <- unique(c(
+  candidats_bruts <- unique(c(
     base_dir,
     "iramuteq-like",
-    "iramuteq-like/Rscripts",
-    "iramuteq_clone_v3/Rscripts"
+    file.path(getwd(), "iramuteq-like")
   ))
-  candidats <- candidats[!is.na(candidats) & nzchar(candidats)]
+  candidats <- candidats_bruts[
+    !is.na(candidats_bruts) &
+      nzchar(candidats_bruts) &
+      dir.exists(candidats_bruts)
+  ]
 
   for (cand in candidats) {
     paths <- vapply(scripts, function(sc) .trouver_fichier_insensible_casse(cand, sc), FUN.VALUE = character(1))
@@ -125,7 +128,7 @@ preparer_entrees_chd_iramuteq <- function(
 
   stop(
     "CHD IRaMuTeQ-like: scripts R introuvables. Répertoires testés: ",
-    paste(candidats, collapse = ", "),
+    if (length(candidats)) paste(candidats, collapse = ", ") else "(aucun répertoire existant)",
     ". Fichiers attendus: ",
     paste(scripts, collapse = ", "),
     "."
