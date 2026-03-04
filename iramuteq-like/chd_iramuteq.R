@@ -414,6 +414,70 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
                                               orientation = c("vertical", "horizontal")) {
   orientation <- match.arg(orientation)
 
+  .tracer_dendrogramme_hclust <- function(res_stats_df, classes, top_n_terms, orientation) {
+    if (is.null(res_stats_df) || !is.data.frame(res_stats_df)) return(FALSE)
+    if (!all(c("Classe", "Terme") %in% names(res_stats_df))) return(FALSE)
+
+    df <- res_stats_df
+    df$Classe <- suppressWarnings(as.integer(df$Classe))
+    df$Terme <- as.character(df$Terme)
+    df <- df[is.finite(df$Classe) & df$Classe > 0 & nzchar(df$Terme), , drop = FALSE]
+    if (!nrow(df)) return(FALSE)
+
+    poids <- if ("frequency" %in% names(df)) suppressWarnings(as.numeric(df$frequency)) else rep(1, nrow(df))
+    poids[!is.finite(poids) | is.na(poids) | poids < 0] <- 0
+    df$poids <- poids
+
+    mat <- stats::xtabs(poids ~ Classe + Terme, data = df)
+    if (nrow(mat) < 2 || ncol(mat) < 2) return(FALSE)
+
+    # Colonnes constantes retirées pour stabiliser dist/hclust.
+    vars <- apply(mat, 2, stats::sd)
+    vars[!is.finite(vars)] <- 0
+    mat <- mat[, vars > 0, drop = FALSE]
+    if (nrow(mat) < 2 || ncol(mat) < 2) return(FALSE)
+
+    dist_obj <- stats::dist(mat, method = "euclidean")
+    if (!inherits(dist_obj, "dist") || length(dist_obj) == 0) return(FALSE)
+    hc <- stats::hclust(dist_obj, method = "ward.D2")
+
+    classes_obs <- suppressWarnings(as.integer(classes))
+    classes_obs <- classes_obs[is.finite(classes_obs) & classes_obs > 0]
+    pct_par_classe <- if (length(classes_obs)) prop.table(table(classes_obs)) * 100 else NULL
+
+    top_n_terms <- suppressWarnings(as.integer(top_n_terms))
+    if (!is.finite(top_n_terms) || is.na(top_n_terms) || top_n_terms < 1L) top_n_terms <- 1L
+
+    labels <- vapply(seq_len(nrow(mat)), function(i) {
+      cl <- as.integer(rownames(mat)[[i]])
+      pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
+      pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
+
+      ligne <- mat[i, , drop = TRUE]
+      termes <- names(sort(ligne, decreasing = TRUE))
+      termes <- termes[is.finite(ligne[termes]) & ligne[termes] > 0]
+      termes <- utils::head(termes, top_n_terms)
+      if (!length(termes)) return(paste0("Classe ", cl, pct_txt))
+      paste0("Classe ", cl, pct_txt, "\n", paste(termes, collapse = ", "))
+    }, FUN.VALUE = character(1))
+
+    hc$labels <- labels
+    plot(
+      hc,
+      hang = -1,
+      horiz = identical(orientation, "horizontal"),
+      cex = 0.75,
+      main = "Dendrogramme CHD",
+      xlab = "",
+      sub = ""
+    )
+    TRUE
+  }
+
+  if (.tracer_dendrogramme_hclust(res_stats_df = res_stats_df, classes = classes, top_n_terms = top_n_terms, orientation = orientation)) {
+    return(invisible(NULL))
+  }
+
   n1 <- .normaliser_n1_chd(chd_obj$n1)
   list_fille <- chd_obj$list_fille
   if (is.null(n1) || !is.list(list_fille) || !length(list_fille)) {
@@ -574,7 +638,11 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
   if (!is.finite(max_depth) || max_depth <= 0) max_depth <- 1
 
   node_keys <- names(y_pos)
-  x_vals <- vapply(node_keys, function(k) as.numeric(x_pos[[k]]), numeric(1))
+  x_vals <- vapply(node_keys, function(k) {
+    val <- x_pos[[k]]
+    if (!length(val)) return(NA_real_)
+    as.numeric(val[[1]])
+  }, numeric(1))
   y_vals <- vapply(node_keys, function(k) as.numeric(y_pos[[k]]), numeric(1))
   keep_nodes <- is.finite(x_vals) & is.finite(y_vals)
   node_keys <- node_keys[keep_nodes]
