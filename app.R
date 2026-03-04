@@ -61,6 +61,10 @@ source("iramuteq-like/server_events_lancer_iramuteq.R", encoding = "UTF-8", loca
 
 server <- function(input, output, session) {
 
+  est_texte_non_vide <- function(x) {
+    is.character(x) && length(x) > 0 && !is.na(x[[1]]) && nzchar(x[[1]])
+  }
+
   rv <- reactiveValues(
     logs = "",
     statut = "En attente.",
@@ -126,7 +130,7 @@ server <- function(input, output, session) {
   })
 
   output$ui_afc_statut <- renderUI({
-    if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
+    if (est_texte_non_vide(rv$afc_erreur)) {
       return(tags$p("AFC : erreur (voir ci-dessous)."))
     }
     if (is.null(rv$afc_obj) || is.null(rv$afc_obj$ca)) {
@@ -139,7 +143,7 @@ server <- function(input, output, session) {
 
   output$ui_afc_erreurs <- renderUI({
     messages <- Filter(
-      nzchar,
+      est_texte_non_vide,
       list(
         rv$afc_erreur,
         rv$afc_vars_erreur
@@ -312,10 +316,59 @@ server <- function(input, output, session) {
     tags$p(paste0("CHD disponible (classification simple rainette) - classes détectées : ", nb_classes, "."))
   })
 
+  output$table_classes <- renderTable({
+    if (is.null(rv$res_stats_df) || !is.data.frame(rv$res_stats_df) || nrow(rv$res_stats_df) == 0) {
+      return(data.frame(Message = "Aucune classe disponible (analyse non lancée ou résultats vides).", stringsAsFactors = FALSE))
+    }
+
+    col_classe <- intersect(c("Classe", "classe", "cluster", "Class"), names(rv$res_stats_df))
+    if (length(col_classe) == 0) {
+      return(data.frame(Message = "Colonne de classe introuvable dans les résultats CHD.", stringsAsFactors = FALSE))
+    }
+
+    classes <- suppressWarnings(as.integer(rv$res_stats_df[[col_classe[[1]]]]))
+    classes <- classes[is.finite(classes) & classes > 0]
+    if (!length(classes)) {
+      return(data.frame(Message = "Aucune classe valide détectée.", stringsAsFactors = FALSE))
+    }
+
+    tab <- sort(table(classes), decreasing = TRUE)
+    pct <- round(100 * as.numeric(tab) / sum(tab), 1)
+    data.frame(
+      Classe = paste0("Classe ", names(tab)),
+      Effectif = as.integer(tab),
+      Pourcentage = paste0(format(pct, nsmall = 1), " %"),
+      stringsAsFactors = FALSE
+    )
+  }, rownames = FALSE)
+
+  output$plot_chd_iramuteq_dendro <- renderPlot({
+    if (is.null(rv$res) && is.null(rv$res_chd)) {
+      plot.new()
+      text(0.5, 0.5, "Dendrogramme CHD indisponible. Lance une analyse.", cex = 1.1)
+      return(invisible(NULL))
+    }
+
+    display_method <- "iramuteq_blocks"
+    if (!is.null(input$iramuteq_dendro_display_method)) {
+      display_method <- as.character(input$iramuteq_dendro_display_method)
+    }
+    if (!display_method %in% c("standard", "compact", "iramuteq_blocks")) {
+      display_method <- "iramuteq_blocks"
+    }
+
+    tracer_dendogramme_iramuteq_ui(
+      rv = rv,
+      top_n_terms = 4,
+      orientation = "vertical",
+      display_method = display_method
+    )
+  })
+
   register_events_lancer(input, output, session, rv)
 
   output$plot_afc_classes <- renderPlot({
-    if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
+    if (est_texte_non_vide(rv$afc_erreur)) {
       plot.new()
       text(0.5, 0.5, "AFC indisponible (erreur).", cex = 1.1)
       return(invisible(NULL))
@@ -363,7 +416,7 @@ server <- function(input, output, session) {
   })
 
   output$plot_afc <- renderPlot({
-    if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
+    if (est_texte_non_vide(rv$afc_erreur)) {
       plot.new()
       text(0.5, 0.5, "AFC indisponible (erreur).", cex = 1.1)
       return(invisible(NULL))
@@ -459,7 +512,7 @@ server <- function(input, output, session) {
   })
 
   output$plot_afc_vars <- renderPlot({
-    if (!is.null(rv$afc_vars_erreur) && nzchar(rv$afc_vars_erreur)) {
+    if (est_texte_non_vide(rv$afc_vars_erreur)) {
       plot.new()
       text(0.5, 0.5, "AFC variables étoilées indisponible (erreur).", cex = 1.1)
       return(invisible(NULL))
@@ -510,7 +563,7 @@ server <- function(input, output, session) {
   }, rownames = FALSE, sanitize.text.function = function(x) x)
 
   output$table_afc_eig <- renderTable({
-    if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
+    if (est_texte_non_vide(rv$afc_erreur)) {
       return(data.frame(Message = "AFC indisponible (erreur).", stringsAsFactors = FALSE))
     }
     if (is.null(rv$afc_obj) || is.null(rv$afc_obj$ca)) {

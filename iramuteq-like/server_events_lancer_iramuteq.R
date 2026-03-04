@@ -211,10 +211,11 @@ register_events_lancer <- function(input, output, session, rv) {
         remove_numbers = isTRUE(input$supprimer_chiffres)
       )
       quanteda::docnames(tok) <- ids_docs
+      tok <- quanteda::tokens_tolower(tok)
 
       if (isTRUE(input$retirer_stopwords)) {
         stop_fr <- quanteda::stopwords("fr")
-        tok <- quanteda::tokens_remove(tok, pattern = stop_fr)
+        tok <- quanteda::tokens_remove(tok, pattern = stop_fr, valuetype = "fixed", case_insensitive = TRUE)
       }
 
       if (isTRUE(input$filtrage_morpho)) {
