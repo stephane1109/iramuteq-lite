@@ -42,6 +42,27 @@ if (file.exists("help.md")) {
   }
 }
 
+generer_table_html_afc_mots <- function(df) {
+  if (is.null(df) || nrow(df) == 0) {
+    return(tags$p("Aucun mot disponible pour cette classe."))
+  }
+  htmltools::div(
+    style = "max-height: 420px; overflow-y: auto;",
+    tags$table(
+      style = "width: 100%; border-collapse: collapse;",
+      tags$thead(
+        tags$tr(lapply(names(df), function(col) tags$th(style = "text-align:left; padding:6px; border-bottom:1px solid #ddd;", col)))
+      ),
+      tags$tbody(
+        lapply(seq_len(nrow(df)), function(i) {
+          tags$tr(
+            lapply(df[i, , drop = FALSE], function(val) tags$td(style = "padding:6px; border-bottom:1px solid #f0f0f0; vertical-align: top;", ifelse(is.na(val), "", as.character(val))))
+          )
+        })
+      )
+    )
+  )
+}
 
 source("iramuteq-like/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
