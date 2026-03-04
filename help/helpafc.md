@@ -1,4 +1,4 @@
-[//]: # (Rôle du fichier: helpafc.md documente une partie de l'application Rainette.)
+[//]: # (Rôle du fichier: helpafc.md documente une partie de l'application IRaMuTeQ-like.)
 [//]: # (Ce document sert de référence fonctionnelle/technique pour l'équipe.)
 [//]: # (Il décrit le comportement attendu afin de sécuriser maintenance et diagnostics.)
 ## Aide AFC : calcul, affichage des termes, rôle de `top_termes`, calcul du `residu de Pearson`

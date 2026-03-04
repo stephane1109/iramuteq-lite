@@ -1,6 +1,6 @@
 # Audit des options de nettoyage (spaCy vs `lexique_fr`)
 
-Contexte analysé : pipeline Rainette (`R/server_events_lancer.R`, `nettoyage.R`, `R/pipeline_spacy_analysis.R`, `R/pipeline_lexique_analysis.R`, `R/nlp_spacy.R`, `rainette/spacy_preprocess.py`, `R/chd_afc_pipeline.R`, `R/nlp_language.R`).
+Contexte analysé : pipeline IRaMuTeQ-like (`R/server_events_lancer.R`, `nettoyage.R`, `R/pipeline_spacy_analysis.R`, `R/pipeline_lexique_analysis.R`, `R/nlp_spacy.R`, `iramuteq-like/textprepa_iramuteq.py`, `R/chd_afc_pipeline.R`, `R/nlp_language.R`).
 
 ## Résumé rapide
 
@@ -16,7 +16,7 @@ Contexte analysé : pipeline Rainette (`R/server_events_lancer.R`, `nettoyage.R`
 | `forcer_minuscules_avant` | Appliquée dans `appliquer_nettoyage_et_minuscules()` | Appliquée dans `appliquer_nettoyage_et_minuscules()` + passée à Python (`--lower_input`) | ⚠️ Redondante en spaCy |
 | `supprimer_chiffres` | Appliquée dans `appliquer_nettoyage_et_minuscules()` + `tokens(..., remove_numbers=TRUE/FALSE)` | Appliquée dans `appliquer_nettoyage_et_minuscules()` + spaCy Python (`--remove_numbers`) + `tokens(..., remove_numbers=...)` | ⚠️ Très redondante en spaCy |
 | `supprimer_apostrophes` | Appliquée dans `appliquer_nettoyage_et_minuscules()` | Appliquée dans `appliquer_nettoyage_et_minuscules()` + spaCy Python (`--strip_fr_elisions`) | ⚠️ Redondante en spaCy |
-| `supprimer_ponctuation` | Appliquée à la tokenisation quanteda (`tokens(remove_punct=...)`) | **Déjà supprimée** dans `rainette/spacy_preprocess.py` (`tok.is_punct` ignoré), puis retokenisation quanteda | ⚠️ En spaCy, case quasi sans effet |
+| `supprimer_ponctuation` | Appliquée à la tokenisation quanteda (`tokens(remove_punct=...)`) | **Déjà supprimée** dans `iramuteq-like/textprepa_iramuteq.py` (`tok.is_punct` ignoré), puis retokenisation quanteda | ⚠️ En spaCy, case quasi sans effet |
 | `retirer_stopwords` | Oui (`obtenir_stopwords_analyse(..., source_dictionnaire='lexique_fr')` → quanteda FR) | Oui (`source_dictionnaire='spacy'` → stopwords spaCy) | ✅ OK des deux côtés |
 | `filtrage_morpho` | Oui via `filtrer_textes_lexique_par_cgram()` (`c_morpho`) | Oui via `--pos_keep` et filtrage POS dans Python | ✅ OK des deux côtés |
 

@@ -5,7 +5,7 @@
 ### 1.1 Entrée corpus et segmentation initiale
 - Le serveur lance d'abord l'import du corpus via `import_corpus_iramuteq(chemin_fichier)`, puis applique la segmentation via `split_segments(corpus, segment_size = input$segment_size)`.
 - Le nombre de segments affiché juste après cette étape est `ndoc(corpus)` après `split_segments`.
-- **Important**: les fonctions `import_corpus_iramuteq` et `split_segments` ne sont pas redéfinies dans ce dépôt (elles viennent d'une dépendance, typiquement `rainette`), donc leur comportement exact dépend de la version installée.
+- **Important**: les fonctions `import_corpus_iramuteq` et `split_segments` ne sont pas redéfinies dans ce dépôt (elles viennent d'une dépendance, typiquement moteur externe), donc leur comportement exact dépend de la version installée.
 
 ### 1.2 Pré-nettoyage texte (avant tokenisation)
 - Le texte segmenté passe ensuite par `appliquer_nettoyage_et_minuscules(...)`.
@@ -25,7 +25,7 @@
 - Ensuite, stopwords optionnels puis `dfm` + `dfm_trim(min_docfreq=...)`.
 
 #### Chemin spaCy
-- Le script Python `rainette/spacy_preprocess.py` lit `doc_id,text`, puis pour chaque token spaCy:
+- Le script Python `iramuteq-like/textprepa_iramuteq.py` lit `doc_id,text`, puis pour chaque token spaCy:
   - ignore espaces et ponctuation,
   - optionnellement ignore nombres (`tok.like_num`),
   - optionnellement retire préfixes d'élision FR,
@@ -120,7 +120,7 @@ Donc il faut distinguer:
 
 ## 6) Erreurs possibles (checklist de diagnostic)
 
-1. Version package `rainette` différente -> comportement `split_segments` différent.
+1. Version package externe différente -> comportement `split_segments` différent.
 2. `segment_size` identique mais options de nettoyage non alignées.
 3. `supprimer_apostrophes` active d'un côté, inactive de l'autre.
 4. `supprimer_chiffres` active à la fois en nettoyage R et en spaCy.
@@ -140,7 +140,7 @@ Donc il faut distinguer:
    - `N_non_vide = ndoc(dfm_obj)` après `supprimer_docs_vides_dfm`,
    - `N_classes = ndoc(filtered_corpus_ok)` après exclusion classes 0/NA.
 2. Afficher ces 3 nombres dans l'UI, pas un seul "nombre de segments".
-3. Figer version `rainette` dans l'environnement pour reproductibilité.
+3. Figer version moteur externe dans l'environnement pour reproductibilité.
 4. Pour audit comparatif, désactiver temporairement: POS filter, stopwords, `min_docfreq > 1`, suppression apostrophes/chiffres.
 
 ---
