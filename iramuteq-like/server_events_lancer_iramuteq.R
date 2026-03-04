@@ -174,22 +174,17 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
-    if (!exists("appliquer_nettoyage_rainette", mode = "function", inherits = TRUE)) {
-      appliquer_nettoyage_rainette <- function(textes,
+    if (!exists("appliquer_nettoyage_iramuteq", mode = "function", inherits = TRUE)) {
+      appliquer_nettoyage_iramuteq <- function(textes,
                                                activer_nettoyage = FALSE,
                                                forcer_minuscules = FALSE,
                                                supprimer_chiffres = FALSE,
                                                supprimer_apostrophes = FALSE) {
-        ajouter_log(rv, "Avertissement: appliquer_nettoyage_rainette indisponible; nettoyage contourné pour préserver l'exécution.")
         if (is.null(textes)) return(character(0))
         x <- as.character(textes)
         if (isTRUE(forcer_minuscules)) x <- tolower(x)
         x
       }
-    }
-
-    if (!exists("appliquer_nettoyage_iramuteq", mode = "function", inherits = TRUE)) {
-      appliquer_nettoyage_iramuteq <- appliquer_nettoyage_rainette
     }
 
     executer_pipeline_iramuteq <- function(input, rv, textes_chd) {
@@ -522,7 +517,7 @@ register_events_lancer <- function(input, output, session, rv) {
           avancer(0.02, "Préparation des répertoires")
           rv$statut <- "Préparation des répertoires..."
 
-          rv$base_dir <- file.path(tempdir(), paste0("rainette_", session$token))
+          rv$base_dir <- file.path(tempdir(), paste0("iramuteq_", session$token))
           rv$export_dir <- file.path(rv$base_dir, "exports")
           dir.create(rv$export_dir, showWarnings = FALSE, recursive = TRUE)
           ajouter_log(rv, paste0("export_dir = ", rv$export_dir))
@@ -577,31 +572,20 @@ register_events_lancer <- function(input, output, session, rv) {
           avancer(0.18, "Préparation texte (nettoyage / minuscules)")
           rv$statut <- "Préparation texte..."
 
-          if (mode_iramuteq) {
-            textes_nettoyes <- appliquer_nettoyage_iramuteq(
-              textes = textes_orig,
-              activer_nettoyage = isTRUE(input$nettoyage_caracteres),
-              forcer_minuscules = isTRUE(input$forcer_minuscules_avant),
-              supprimer_chiffres = isTRUE(input$supprimer_chiffres),
-              supprimer_apostrophes = isTRUE(input$supprimer_apostrophes)
-            )
+          textes_nettoyes <- appliquer_nettoyage_iramuteq(
+            textes = textes_orig,
+            activer_nettoyage = isTRUE(input$nettoyage_caracteres),
+            forcer_minuscules = isTRUE(input$forcer_minuscules_avant),
+            supprimer_chiffres = isTRUE(input$supprimer_chiffres),
+            supprimer_apostrophes = isTRUE(input$supprimer_apostrophes)
+          )
 
-            textes_chd <- executer_textprepa_iramuteq(
-              ids = ids_corpus,
-              textes = textes_nettoyes,
-              input = input,
-              rv = rv
-            )
-          } else {
-            textes_chd <- appliquer_nettoyage_rainette(
-              textes = textes_orig,
-              activer_nettoyage = isTRUE(input$nettoyage_caracteres),
-              forcer_minuscules = isTRUE(input$forcer_minuscules_avant),
-              supprimer_chiffres = isTRUE(input$supprimer_chiffres),
-              supprimer_apostrophes = isTRUE(input$supprimer_apostrophes)
-            )
-            names(textes_chd) <- ids_corpus
-          }
+          textes_chd <- executer_textprepa_iramuteq(
+            ids = ids_corpus,
+            textes = textes_nettoyes,
+            input = input,
+            rv = rv
+          )
 
           source_dictionnaire <- "lexique_fr"
 
@@ -657,130 +641,93 @@ register_events_lancer <- function(input, output, session, rv) {
             ajouter_log(rv, paste0("Tokens : docnames dupliqués détectés (", dups_tok, "). Renommage automatique."))
           }
 
-          dfm_obj <- assurer_docvars_dfm_minimal(dfm_obj, filtered_corpus)
+          segment_source <- as.character(docnames(dfm_obj))
+          if ("segment_source" %in% names(docvars(filtered_corpus))) {
+            ss <- as.character(docvars(filtered_corpus)$segment_source)
+            idx_ss <- match(as.character(docnames(dfm_obj)), as.character(docnames(filtered_corpus)))
+            ss_aligne <- ss[idx_ss]
+            ok_ss <- !is.na(ss_aligne) & nzchar(trimws(ss_aligne))
+            segment_source[ok_ss] <- ss_aligne[ok_ss]
+          }
+          docvars(dfm_obj, "segment_source") <- segment_source
 
-          tmp <- supprimer_docs_vides_dfm(dfm_obj, filtered_corpus, tok, rv)
-          dfm_obj <- tmp$dfm
-          filtered_corpus <- tmp$corpus
-          tok <- tmp$tok
+          sommes_docs <- Matrix::rowSums(dfm_obj)
+          idx_non_vides <- !is.na(sommes_docs) & (sommes_docs > 0)
+          if (!any(idx_non_vides)) {
+            stop("Le DFM ne contient aucun segment non vide après prétraitement.")
+          }
+
+          nb_vides <- sum(!idx_non_vides)
+          if (nb_vides > 0) {
+            ajouter_log(rv, paste0("Segments vides supprimés du DFM : ", nb_vides, "."))
+          }
+
+          dfm_obj <- dfm_obj[idx_non_vides, ]
+          filtered_corpus <- filtered_corpus[idx_non_vides]
+          tok <- tok[idx_non_vides]
 
           ajouter_log(rv, paste0("Après suppression segments vides : ", ndoc(dfm_obj), " docs ; ", nfeat(dfm_obj), " termes."))
-          verifier_dfm_avant_rainette(dfm_obj, input)
 
           rv$textes_indexation <- vapply(as.list(tok), function(x) paste(x, collapse = " "), FUN.VALUE = character(1))
           names(rv$textes_indexation) <- docnames(dfm_obj)
 
-          avancer(0.52, "Classification (rainette / rainette2)")
+          avancer(0.52, "Classification CHD IRaMuTeQ-like")
           rv$statut <- "Classification en cours..."
 
-          modele_chd <- "iramuteq"
-
-          type_classif <- as.character(input$type_classification)
-          if (!type_classif %in% c("simple", "double")) type_classif <- "simple"
+          rv$res_type <- "iramuteq"
+          ajouter_log(rv, "Mode : classification IRaMuTeQ-like.")
 
           groupes <- NULL
           res_final <- NULL
 
-          if (identical(modele_chd, "iramuteq")) {
+          k_iramuteq <- suppressWarnings(as.integer(input$k_iramuteq))
+          if (is.na(k_iramuteq) || k_iramuteq < 2L) k_iramuteq <- 10L
 
-            rv$res_type <- "iramuteq"
-            ajouter_log(rv, "Mode : classification IRaMuTeQ-like.")
+          mincl_mode_iramuteq <- as.character(input$iramuteq_mincl_mode)
+          if (!mincl_mode_iramuteq %in% c("auto", "manuel")) mincl_mode_iramuteq <- "auto"
 
-            k_iramuteq <- suppressWarnings(as.integer(input$k_iramuteq))
-            if (is.na(k_iramuteq) || k_iramuteq < 2L) k_iramuteq <- 10L
+          mincl_iramuteq <- suppressWarnings(as.integer(input$iramuteq_mincl))
+          if (is.na(mincl_iramuteq) || mincl_iramuteq < 1L) mincl_iramuteq <- 1L
 
-            mincl_mode_iramuteq <- as.character(input$iramuteq_mincl_mode)
-            if (!mincl_mode_iramuteq %in% c("auto", "manuel")) mincl_mode_iramuteq <- "auto"
+          classif_mode_iramuteq <- as.character(input$iramuteq_classif_mode)
+          if (!classif_mode_iramuteq %in% c("simple", "double")) classif_mode_iramuteq <- "simple"
 
-            mincl_iramuteq <- suppressWarnings(as.integer(input$iramuteq_mincl))
-            if (is.na(mincl_iramuteq) || mincl_iramuteq < 1L) mincl_iramuteq <- 1L
+          svd_method_iramuteq <- as.character(input$iramuteq_svd_method)
+          if (!svd_method_iramuteq %in% c("irlba", "svdR")) svd_method_iramuteq <- "irlba"
 
-            classif_mode_iramuteq <- as.character(input$iramuteq_classif_mode)
-            if (!classif_mode_iramuteq %in% c("simple", "double")) classif_mode_iramuteq <- "simple"
-
-            svd_method_iramuteq <- as.character(input$iramuteq_svd_method)
-            if (!svd_method_iramuteq %in% c("irlba", "svdR")) svd_method_iramuteq <- "irlba"
-
-            ajouter_log(
-              rv,
-              paste0(
-                "Paramètres IRaMuTeQ-like : k=", k_iramuteq,
-                " | mincl_mode=", mincl_mode_iramuteq,
-                if (identical(mincl_mode_iramuteq, "manuel")) paste0(" | mincl=", mincl_iramuteq) else "",
-                " | classif_mode=", classif_mode_iramuteq,
-                " | svd_method=", svd_method_iramuteq,
-                " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
-              )
+          ajouter_log(
+            rv,
+            paste0(
+              "Paramètres IRaMuTeQ-like : k=", k_iramuteq,
+              " | mincl_mode=", mincl_mode_iramuteq,
+              if (identical(mincl_mode_iramuteq, "manuel")) paste0(" | mincl=", mincl_iramuteq) else "",
+              " | classif_mode=", classif_mode_iramuteq,
+              " | svd_method=", svd_method_iramuteq,
+              " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
             )
+          )
 
-            res_ira <- lancer_moteur_chd_iramuteq(
-              dfm_obj = dfm_obj,
-              k = k_iramuteq,
-              mincl_mode = mincl_mode_iramuteq,
-              mincl = mincl_iramuteq,
-              classif_mode = classif_mode_iramuteq,
-              svd_method = svd_method_iramuteq,
-              mode_patate = isTRUE(input$iramuteq_mode_patate),
-              binariser = TRUE
-            )
+          res_ira <- lancer_moteur_chd_iramuteq(
+            dfm_obj = dfm_obj,
+            k = k_iramuteq,
+            mincl_mode = mincl_mode_iramuteq,
+            mincl = mincl_iramuteq,
+            classif_mode = classif_mode_iramuteq,
+            svd_method = svd_method_iramuteq,
+            mode_patate = isTRUE(input$iramuteq_mode_patate),
+            binariser = TRUE
+          )
 
-            groupes <- as.integer(res_ira$classes)
-            if (all(is.na(groupes)) || length(unique(groupes[groupes > 0])) < 2) {
-              stop("IRaMuTeQ-like n'a pas pu produire au moins 2 classes exploitables.")
-            }
-
-            res_final <- res_ira
-            rv$res_chd <- NULL
-            rv$dfm_chd <- NULL
-            rv$max_n_groups <- length(unique(groupes[groupes > 0]))
-            rv$max_n_groups_chd <- rv$max_n_groups
-
-          } else if (type_classif == "simple") {
-
-            rv$res_type <- "simple"
-            ajouter_log(rv, "Mode : classification simple (rainette).")
-
-            k_effectif <- calculer_k_effectif(dfm_obj, input$k, input$min_split_members, rv)
-
-            res <- rainette(
-              dfm_obj,
-              k = k_effectif,
-              min_segment_size = input$min_segment_size,
-              min_split_members = input$min_split_members,
-              doc_id = "segment_source"
-            )
-
-            if (is.null(res) || is.null(res$group) || length(res$group) == 0) stop("Rainette n'a pas pu calculer de clusters. Diminue les filtrages, augmente segment_size, ou réduis k.")
-
-            groupes <- res$group
-            res_final <- res
-            rv$res_chd <- res
-            rv$dfm_chd <- dfm_obj
-            rv$max_n_groups <- max(res$group, na.rm = TRUE)
-            rv$max_n_groups_chd <- rv$max_n_groups
-
-          } else {
-
-            rv$res_type <- "double"
-            ajouter_log(rv, "Mode : classification double (rainette2).")
-
-            k_effectif <- calculer_k_effectif(dfm_obj, input$k, input$min_split_members, rv)
-
-            res1 <- rainette(dfm_obj, k = k_effectif, min_segment_size = input$min_segment_size, min_split_members = input$min_split_members, doc_id = "segment_source")
-            if (is.null(res1) || is.null(res1$group) || length(res1$group) == 0) stop("Classification 1 (rainette) impossible.")
-
-            res2 <- rainette(dfm_obj, k = k_effectif, min_segment_size = input$min_segment_size2, min_split_members = input$min_split_members, doc_id = "segment_source")
-            if (is.null(res2) || is.null(res2$group) || length(res2$group) == 0) stop("Classification 2 (rainette) impossible.")
-
-            res_d <- rainette2(res1, res2, max_k = input$max_k_double)
-            groupes <- cutree(res_d, k = k_effectif)
-
-            res_final <- res_d
-            rv$res_chd <- res1
-            rv$dfm_chd <- dfm_obj
-            rv$max_n_groups <- input$max_k_double
-            rv$max_n_groups_chd <- max(res1$group, na.rm = TRUE)
+          groupes <- as.integer(res_ira$classes)
+          if (all(is.na(groupes)) || length(unique(groupes[groupes > 0])) < 2) {
+            stop("IRaMuTeQ-like n'a pas pu produire au moins 2 classes exploitables.")
           }
+
+          res_final <- res_ira
+          rv$res_chd <- NULL
+          rv$dfm_chd <- NULL
+          rv$max_n_groups <- length(unique(groupes[groupes > 0]))
+          rv$max_n_groups_chd <- rv$max_n_groups
 
           docvars(filtered_corpus)$Classes <- groupes
 
@@ -824,54 +771,14 @@ register_events_lancer <- function(input, output, session, rv) {
           segments_file <- file.path(rv$export_dir, "segments_par_classe.txt")
           writeLines(unlist(lapply(names(segments_by_class), function(cl) c(paste0("Classe ", cl, ":"), unname(segments_by_class[[cl]]), ""))), segments_file)
 
-          if (identical(rv$res_type, "iramuteq")) {
-            ajouter_log(rv, "Statistiques CHD : calcul IRaMuTeQ-like (contingence classe × terme).")
-            res_stats_df <- construire_stats_classes_iramuteq(
-              dfm_obj = dfm_ok,
-              classes = docvars(filtered_corpus_ok)$Classes,
-              max_p = 1
-            ) %>%
-              mutate(Classe = normaliser_id_classe_local(Classe)) %>%
-              arrange(Classe, desc(chi2))
-          } else {
-            res_stats_list <- rainette_stats(
-              dtm = dfm_ok,
-              groups = docvars(filtered_corpus_ok)$Classes,
-              measure = c("chi2", "lr", "frequency", "docprop"),
-              n_terms = 9999,
-              # Harmonisation avec le graphe CHD :
-              # - pas de chi2 négatifs dans l'onglet Statistiques
-              # - pas de coupe préalable sur p-value pour conserver le même
-              #   vivier de termes entre les vues (la colonne p_value_filter
-              #   reste disponible pour distinguer les termes significatifs).
-              show_negative = FALSE,
-              max_p = 1
-            )
-
-            labels_stats <- names(res_stats_list)
-            labels_groupes <- as.character(sort(unique(docvars(filtered_corpus_ok)$Classes)))
-
-            if (is.null(labels_stats) || length(labels_stats) != length(res_stats_list) || any(!nzchar(labels_stats))) {
-              labels_stats <- labels_groupes
-            }
-
-            if (length(labels_stats) != length(res_stats_list)) {
-              labels_stats <- as.character(seq_along(res_stats_list))
-            }
-
-            tailles_stats <- vapply(res_stats_list, nrow, integer(1))
-
-            res_stats_df <- bind_rows(res_stats_list) %>%
-              mutate(ClusterID = rep(labels_stats, times = tailles_stats)) %>%
-              rename(Terme = feature, Classe = ClusterID) %>%
-              mutate(
-                p_value = p,
-                Classe_brut = as.character(Classe),
-                Classe = normaliser_id_classe_local(Classe),
-                p_value_filter = ifelse(p <= input$max_p, paste0("≤ ", input$max_p), paste0("> ", input$max_p))
-              ) %>%
-              arrange(Classe, desc(chi2))
-          }
+          ajouter_log(rv, "Statistiques CHD : calcul IRaMuTeQ-like (contingence classe × terme).")
+          res_stats_df <- construire_stats_classes_iramuteq(
+            dfm_obj = dfm_ok,
+            classes = docvars(filtered_corpus_ok)$Classes,
+            max_p = 1
+          ) %>%
+            mutate(Classe = normaliser_id_classe_local(Classe)) %>%
+            arrange(Classe, desc(chi2))
 
           if (identical(source_dictionnaire, "lexique_fr") &&
               !is.null(rv$lexique_fr_df) &&
@@ -934,7 +841,7 @@ register_events_lancer <- function(input, output, session, rv) {
                 by.x = c("Terme", "Classe_num"),
                 by.y = c("Terme", "Classe"),
                 all.x = TRUE,
-                suffixes = c("_global", "_rainette")
+                suffixes = c("_global", "_stats")
               )
 
               if ("chi2" %in% names(m)) {
@@ -1108,15 +1015,7 @@ register_events_lancer <- function(input, output, session, rv) {
 
             }
 
-            generer_cooccurrences_par_classe(
-              tok_ok = tok_ok,
-              filtered_corpus_ok = filtered_corpus_ok,
-              classes_uniques = classes_uniques,
-              cooc_dir = cooc_dir,
-              top_n = input$top_n,
-              top_feat = input$top_feat,
-              window_cooc = input$window_cooc
-            )
+            # Cooccurrences Explor retirées du pipeline IRaMuTeQ-like.
           } else {
             generer_wordclouds_iramuteq(
               res_stats_df = res_stats_df,
@@ -1126,20 +1025,14 @@ register_events_lancer <- function(input, output, session, rv) {
               filtrer_pvalue = isTRUE(input$filtrer_affichage_pvalue),
               max_p = input$max_p
             )
-            ajouter_log(rv, "Mode IRaMuTeQ-like : nuages de mots générés via wordcloud_iramuteq.R (cooccurrences Explore rainette désactivées).")
+            ajouter_log(rv, "Mode IRaMuTeQ-like : nuages de mots générés via wordcloud_iramuteq.R.")
           }
 
           explor_assets <- NULL
           ok_chd_png <- FALSE
-          if (!identical(rv$res_type, "iramuteq")) {
-            ok_chd_png <- generer_chd_explor_si_absente(rv)
-          }
 
           chd_png_rel <- NULL
-          if (isTRUE(ok_chd_png) && file.exists(file.path(rv$export_dir, "explor", "chd.png"))) {
-            chd_png_rel <- file.path("explor", "chd.png")
-          }
-          chd_html_rel <- generer_chd_html_explor(rv, chd_png_rel)
+          chd_html_rel <- NULL
 
           wc_files <- list.files(wordcloud_dir, pattern = "\\.png$", full.names = FALSE)
           if (length(wc_files) > 0) {
@@ -1154,7 +1047,7 @@ register_events_lancer <- function(input, output, session, rv) {
             wordclouds_df <- data.frame(classe = character(0), src = character(0), stringsAsFactors = FALSE)
           }
 
-          coocs_df <- construire_table_cooccurrences(cooc_dir)
+          coocs_df <- data.frame(classe = character(0), src = character(0), stringsAsFactors = FALSE)
 
           explor_assets <- list(
             chd = chd_png_rel,
@@ -1226,7 +1119,7 @@ register_events_lancer <- function(input, output, session, rv) {
 
           avancer(0.96, "ZIP")
           rv$statut <- "Création ZIP..."
-          rv$zip_file <- file.path(rv$base_dir, "exports_rainette.zip")
+          rv$zip_file <- file.path(rv$base_dir, "exports_iramuteq.zip")
           if (file.exists(rv$zip_file)) unlink(rv$zip_file)
 
           ancien_wd <- getwd()
