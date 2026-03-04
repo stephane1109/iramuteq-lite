@@ -279,34 +279,23 @@ register_events_lancer <- function(input, output, session, rv) {
 
     lire_min_docfreq_iramuteq <- function(min_docfreq_mode, n_segments) {
       valeur_auto <- calculer_min_docfreq_iramuteq(n_segments)
-      mode_brut <- trimws(as.character(min_docfreq_mode))
-      if (is.null(mode_brut) || !length(mode_brut)) mode_brut <- "A"
-      if (!nzchar(mode_brut)) mode_brut <- "A"
+      valeur_saisie <- suppressWarnings(as.integer(min_docfreq_mode))
 
-      if (grepl("^A", toupper(mode_brut))) {
+      if (!is.finite(valeur_saisie) || is.na(valeur_saisie) || valeur_saisie < 1L) {
         return(list(
           valeur = valeur_auto,
           auto = valeur_auto,
-          mode = "A",
-          source = "auto"
-        ))
-      }
-
-      valeur_manuelle <- suppressWarnings(as.integer(mode_brut))
-      if (!is.finite(valeur_manuelle) || is.na(valeur_manuelle) || valeur_manuelle < 1L) {
-        return(list(
-          valeur = valeur_auto,
-          auto = valeur_auto,
-          mode = "A",
+          mode = as.character(valeur_auto),
           source = "auto_invalid_fallback"
         ))
       }
 
+      source_mode <- if (valeur_saisie == valeur_auto) "auto" else "manuel"
       list(
-        valeur = valeur_manuelle,
+        valeur = valeur_saisie,
         auto = valeur_auto,
-        mode = as.character(valeur_manuelle),
-        source = "manuel"
+        mode = as.character(valeur_saisie),
+        source = source_mode
       )
     }
 
@@ -370,7 +359,7 @@ register_events_lancer <- function(input, output, session, rv) {
         rv,
         paste0(
           "min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_cfg$valeur,
-          " [auto(A)=", min_docfreq_cfg$auto,
+          " [auto(2)=", min_docfreq_cfg$auto,
           ", champ=", min_docfreq_cfg$mode,
           ", source=", min_docfreq_cfg$source,
           "] pour ", quanteda::ndoc(dfm_obj), " segments."
