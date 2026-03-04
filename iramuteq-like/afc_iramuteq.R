@@ -17,6 +17,18 @@ verifier_factominer <- function() {
   }
 }
 
+.ajouter_log_si_disponible <- function(rv, message) {
+  if (is.null(rv) || !nzchar(message)) return(invisible(NULL))
+
+  if (exists("ajouter_log", mode = "function", inherits = TRUE)) {
+    ajouter_log(rv, message)
+    return(invisible(NULL))
+  }
+
+  rv$logs <- c(rv$logs, as.character(message))
+  invisible(NULL)
+}
+
 # Limites symétriques autour de 0 pour centrer le graphe (0,0) au centre
 calculer_lim_sym <- function(x, y, marge = 0.08) {
   x <- x[is.finite(x)]
@@ -545,18 +557,16 @@ executer_afc_variables_etoilees <- function(corpus_aligne, groupes, max_modalite
     max_modalites = max_modalites
   )
 
-  if (!is.null(rv)) {
-    ajouter_log(
-      rv,
-      paste0(
-        "AFC variables étoilées : table construite (",
-        nrow(tab),
-        " classes × ",
-        ncol(tab),
-        " modalités)."
-      )
+  .ajouter_log_si_disponible(
+    rv,
+    paste0(
+      "AFC variables étoilées : table construite (",
+      nrow(tab),
+      " classes × ",
+      ncol(tab),
+      " modalités)."
     )
-  }
+  )
 
   ca <- FactoMineR::CA(tab, graph = FALSE)
   rowcoord <- ca$row$coord
