@@ -194,6 +194,14 @@ register_events_lancer <- function(input, output, session, rv) {
       as.integer(max(1L, floor(sqrt(n_segments))))
     }
 
+    lire_top_n_wordcloud <- function(input_top_n, valeur_defaut = 20L, min_value = 5L) {
+      top_n <- suppressWarnings(as.integer(input_top_n))
+      if (length(top_n) != 1L || is.na(top_n) || !is.finite(top_n)) {
+        top_n <- as.integer(valeur_defaut)
+      }
+      as.integer(max(as.integer(min_value), top_n))
+    }
+
     executer_pipeline_iramuteq <- function(input, rv, textes_chd) {
       if (is.null(textes_chd)) {
         stop("IRaMuTeQ-like: textes_chd manquant pour la préparation du pipeline.")
@@ -1024,10 +1032,8 @@ register_events_lancer <- function(input, output, session, rv) {
           classes_uniques <- classes_uniques[is.finite(classes_uniques)]
 
           if (!identical(rv$res_type, "iramuteq")) {
+            top_n_demande <- lire_top_n_wordcloud(input$top_n)
             for (cl in classes_uniques) {
-            top_n_demande <- suppressWarnings(as.integer(input$top_n))
-            if (!is.finite(top_n_demande) || is.na(top_n_demande)) top_n_demande <- 20L
-            top_n_demande <- max(5L, top_n_demande)
 
             if (isTRUE(input$filtrer_affichage_pvalue)) {
               df_stats_cl <- subset(res_stats_df, Classe == cl & p <= input$max_p)
@@ -1063,7 +1069,7 @@ register_events_lancer <- function(input, output, session, rv) {
               res_stats_df = res_stats_df,
               classes_uniques = classes_uniques,
               wordcloud_dir = wordcloud_dir,
-              top_n = input$top_n,
+              top_n = lire_top_n_wordcloud(input$top_n),
               filtrer_pvalue = isTRUE(input$filtrer_affichage_pvalue),
               max_p = input$max_p
             )

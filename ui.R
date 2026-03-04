@@ -210,6 +210,14 @@ ui <- fluidPage(
         inline = FALSE
       ),
 
+      numericInput(
+        "top_n",
+        "Top N mots par classe (nuages)",
+        value = 20,
+        min = 5,
+        step = 1
+      ),
+
       tags$hr(),
 
       tags$div(
