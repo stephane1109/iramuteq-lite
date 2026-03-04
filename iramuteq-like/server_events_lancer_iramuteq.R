@@ -651,20 +651,32 @@ register_events_lancer <- function(input, output, session, rv) {
           }
           docvars(dfm_obj, "segment_source") <- segment_source
 
-          sommes_docs <- Matrix::rowSums(dfm_obj)
-          idx_non_vides <- !is.na(sommes_docs) & (sommes_docs > 0)
-          if (!any(idx_non_vides)) {
-            stop("Le DFM ne contient aucun segment non vide après prétraitement.")
-          }
+          if (exists("supprimer_docs_vides_dfm", mode = "function", inherits = TRUE)) {
+            res_docs <- supprimer_docs_vides_dfm(
+              dfm_obj = dfm_obj,
+              filtered_corpus = filtered_corpus,
+              tok = tok,
+              logger = function(msg) ajouter_log(rv, msg)
+            )
+            dfm_obj <- res_docs$dfm_obj
+            filtered_corpus <- res_docs$filtered_corpus
+            tok <- res_docs$tok
+          } else {
+            sommes_docs <- Matrix::rowSums(dfm_obj)
+            idx_non_vides <- !is.na(sommes_docs) & (sommes_docs > 0)
+            if (!any(idx_non_vides)) {
+              stop("Le DFM ne contient aucun segment non vide après prétraitement.")
+            }
 
-          nb_vides <- sum(!idx_non_vides)
-          if (nb_vides > 0) {
-            ajouter_log(rv, paste0("Segments vides supprimés du DFM : ", nb_vides, "."))
-          }
+            nb_vides <- sum(!idx_non_vides)
+            if (nb_vides > 0) {
+              ajouter_log(rv, paste0("Segments vides supprimés du DFM : ", nb_vides, "."))
+            }
 
-          dfm_obj <- dfm_obj[idx_non_vides, ]
-          filtered_corpus <- filtered_corpus[idx_non_vides]
-          tok <- tok[idx_non_vides]
+            dfm_obj <- dfm_obj[idx_non_vides, ]
+            filtered_corpus <- filtered_corpus[idx_non_vides]
+            tok <- tok[idx_non_vides]
+          }
 
           ajouter_log(rv, paste0("Après suppression segments vides : ", ndoc(dfm_obj), " docs ; ", nfeat(dfm_obj), " termes."))
 
