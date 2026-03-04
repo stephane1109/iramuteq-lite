@@ -369,23 +369,40 @@ register_events_lancer <- function(input, output, session, rv) {
       candidats_html <- c(
         rv$html_file,
         file.path(rv$export_dir, "segments_par_classe.html"),
-        file.path(rv$export_dir, "concordancier.html")
+        file.path(rv$export_dir, "concordancier.html"),
+        file.path(rv$export_dir, "conordancier.html"),
+        file.path(rv$base_dir, "concordancier.html"),
+        file.path(rv$base_dir, "conordancier.html")
       )
       candidats_dyn <- list.files(
         rv$export_dir,
-        pattern = "(segments.*classe|concord).*\\.html$",
+        pattern = "(segments.*classe|concord|conord).*\\.x?html?$",
         ignore.case = TRUE,
         full.names = TRUE
       )
-      candidats_html <- c(candidats_html, candidats_dyn)
+      candidats_dyn_base <- list.files(
+        rv$base_dir,
+        pattern = "(segments.*classe|concord|conord).*\\.x?html?$",
+        ignore.case = TRUE,
+        recursive = TRUE,
+        full.names = TRUE
+      )
+      candidats_html <- c(candidats_html, candidats_dyn, candidats_dyn_base)
       candidats_html <- unique(candidats_html[!is.na(candidats_html) & nzchar(candidats_html)])
       html_existant <- candidats_html[file.exists(candidats_html)]
 
       if (length(html_existant) == 0) {
+        fichiers_export <- list.files(rv$export_dir, full.names = FALSE)
+        infos_export <- if (length(fichiers_export) == 0) {
+          "Aucun fichier trouvé dans le dossier exports."
+        } else {
+          paste0("Fichiers présents dans exports : ", paste(head(fichiers_export, 20), collapse = ", "))
+        }
         return(tags$div(
           style = "padding: 12px;",
           tags$p("Le fichier du concordancier HTML n'est pas disponible pour cette analyse."),
-          tags$p("Relance l'analyse puis vérifie les logs si le problème persiste.")
+          tags$p("Relance l'analyse puis vérifie les logs si le problème persiste."),
+          tags$p(infos_export)
         ))
       }
 
@@ -1129,8 +1146,16 @@ register_events_lancer <- function(input, output, session, rv) {
           candidats_html <- unique(c(
             html_genere,
             html_file,
-            file.path(rv$export_dir, "concordancier.html")
+            file.path(rv$export_dir, "concordancier.html"),
+            file.path(rv$export_dir, "conordancier.html")
           ))
+          candidats_dyn <- list.files(
+            rv$export_dir,
+            pattern = "(segments.*classe|concord|conord).*\\.x?html?$",
+            ignore.case = TRUE,
+            full.names = TRUE
+          )
+          candidats_html <- unique(c(candidats_html, candidats_dyn))
           candidats_html <- candidats_html[is.character(candidats_html) & !is.na(candidats_html) & nzchar(candidats_html)]
           html_existants <- candidats_html[file.exists(candidats_html)]
 
@@ -1146,7 +1171,16 @@ register_events_lancer <- function(input, output, session, rv) {
               }
             )
 
-            candidats_retry <- unique(c(html_retry, html_fallback, html_genere, html_file))
+            candidats_retry <- unique(c(html_retry, html_fallback, html_genere, html_file, file.path(rv$export_dir, "conordancier.html")))
+            candidats_retry <- unique(c(
+              candidats_retry,
+              list.files(
+                rv$export_dir,
+                pattern = "(segments.*classe|concord|conord).*\\.x?html?$",
+                ignore.case = TRUE,
+                full.names = TRUE
+              )
+            ))
             candidats_retry <- candidats_retry[is.character(candidats_retry) & !is.na(candidats_retry) & nzchar(candidats_retry)]
             html_existants <- candidats_retry[file.exists(candidats_retry)]
           }
