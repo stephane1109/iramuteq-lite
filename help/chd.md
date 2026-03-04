@@ -64,9 +64,9 @@ Puis un plancher est imposé :
 
 ---
 
-## 4) Différence avec le script Rainette de ce projet
+## 4) Différence avec le script IRaMuTeQ-like de ce projet
 
-Dans ce projet, la classification est obtenue via `rainette(...)` / `rainette2(...)`, puis les groupes sont utilisés directement comme classes.
+Dans ce projet, la classification est obtenue via des fonctions internes de classification CHD, puis les groupes sont utilisés directement comme classes.
 
 - Le paramètre `min_split_members` sert principalement à contraindre `k` (nombre de classes faisable).
 - Ce n'est **pas** l'équivalent exact de `mincl` d'IRaMuTeQ.
@@ -88,7 +88,7 @@ Pour rapprocher le comportement d'IRaMuTeQ sans casser l'existant :
 
 Ainsi, l'utilisateur peut choisir entre :
 
-- un mode Rainette "direct" (plus simple),
+- un mode IRaMuTeQ-like "direct" (plus simple),
 - un mode "IRa-like" (plus proche des sorties IRaMuTeQ).
 
 ---

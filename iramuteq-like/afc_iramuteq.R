@@ -1,4 +1,4 @@
-# Rôle du fichier: afc.R porte une partie du pipeline d'analyse Rainette.
+# Rôle du fichier: afc.R porte une partie du pipeline d'analyse IRaMuTeQ-like.
 # Ce script centralise une responsabilité métier/technique utilisée par l'application.
 # Il facilite la maintenance en explicitant le périmètre et les points d'intégration.
 # afc.R

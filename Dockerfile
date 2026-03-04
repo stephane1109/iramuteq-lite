@@ -1,4 +1,4 @@
-# Rôle du fichier: Dockerfile porte une partie du pipeline d'analyse Rainette.
+# Rôle du fichier: Dockerfile porte une partie du pipeline d'analyse IRaMuTeQ-like.
 FROM rocker/r2u:22.04
 
 ENV LANG=C.UTF-8

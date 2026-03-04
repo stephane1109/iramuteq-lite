@@ -351,7 +351,7 @@ register_events_lancer <- function(input, output, session, rv) {
       req(rv$export_dir)
 
       if (!identical(rv$res_type, "iramuteq")) {
-        return(tags$p("Concordancier IRaMuTeQ-like indisponible (mode Rainette actif)."))
+        return(tags$p("Concordancier IRaMuTeQ-like indisponible (mode de classification non supporté)."))
       }
 
       if (is.null(rv$exports_prefix) || !nzchar(rv$exports_prefix)) {

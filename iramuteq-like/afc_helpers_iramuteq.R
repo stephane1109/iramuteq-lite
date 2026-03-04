@@ -1,4 +1,4 @@
-# Rôle du fichier: afc_helpers.R porte une partie du pipeline d'analyse Rainette.
+# Rôle du fichier: afc_helpers.R porte une partie du pipeline d'analyse IRaMuTeQ-like.
 # Module AFC - helpers de contextualisation des termes
 # Ce fichier regroupe des utilitaires AFC, notamment la construction de segments
 # exemples associés aux termes caractéristiques de classes.

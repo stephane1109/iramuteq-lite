@@ -309,11 +309,7 @@ server <- function(input, output, session) {
       return(tags$p(paste0("CHD disponible (moteur IRaMuTeQ-like) - classes détectées : ", nb_classes, ".")))
     }
 
-    if (identical(rv$res_type, "double")) {
-      return(tags$p("CHD disponible (classification double rainette2)."))
-    }
-
-    tags$p(paste0("CHD disponible (classification simple rainette) - classes détectées : ", nb_classes, "."))
+    tags$p(paste0("CHD disponible (moteur IRaMuTeQ-like) - classes détectées : ", nb_classes, "."))
   })
 
   output$table_classes <- renderTable({
@@ -600,7 +596,7 @@ server <- function(input, output, session) {
   )
 
   output$dl_zip <- downloadHandler(
-    filename = function() "exports_rainette.zip",
+    filename = function() "exports_iramuteq_like.zip",
     content = function(file) {
       req(rv$zip_file)
       file.copy(rv$zip_file, file, overwrite = TRUE)

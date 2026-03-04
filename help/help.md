@@ -1,4 +1,4 @@
-[//]: # (Rôle du fichier: help.md documente une partie de l'application Rainette.)
+[//]: # (Rôle du fichier: help.md documente une partie de l'application IRaMuTeQ-like.)
 [//]: # (Ce document sert de référence fonctionnelle/technique pour l'équipe.)
 [//]: # (Il décrit le comportement attendu afin de sécuriser maintenance et diagnostics.)
 ### codeandcortex.fr - Stéphane Meurisse - version beta 0.4 - 18-02-2026
@@ -23,13 +23,10 @@ Il procède par divisions successives : on prend l’ensemble des segments, puis
 Ensuite, chaque groupe peut être à nouveau subdivisé, et ainsi de suite, jusqu’à obtenir un nombre de classes jugé pertinent ou une limite imposée par les paramètres.
 
 
-### Rainette développé par Julien Barnier
+### Moteur de classification IRaMuTeQ-like
 
-Rainette est un package R qui réalise une CHD selon la méthode Reinert.
-- <a href="https://github.com/juba/rainette/blob/main/vignettes/introduction_usage.Rmd" target="_blank" rel="noopener noreferrer">Doc Rainette</a>
-- <a href="https://cran.r-project.org/web/packages/rainette/vignettes/introduction_usage.html" target="_blank" rel="noopener noreferrer">Utilisation de rainette</a>
-- <a href="https://juba.r-universe.dev/builds" target="_blank" rel="noopener noreferrer">Builds r-universe</a>
-
+L'application utilise un moteur de CHD compatible IRaMuTeQ-like, intégré au dépôt.
+Il réalise la segmentation, la classification hiérarchique descendante et les exports d'analyse.
 
 ### Pourquoi vos fichiers peuvent disparaître sur Hugging Face
 
@@ -40,7 +37,7 @@ Conseil : télécharge l’archive ZIP des exports juste après la fin de l’an
 
 # Logique générale de l’application
 
-Uploadez un fichier texte au format IRaMuTeQ. L’app segmente, construit une matrice termes-documents (DTM), lance la CHD avec rainette, calcule les statistiques, génère un HTML surligné (concordancier), puis produit la CHD, AFC, NER, nuages de mots et réseaux de cooccurrences. L’onglet d’exploration (Explore_rainette) permet de visualiser la CHD.
+Uploadez un fichier texte au format IRaMuTeQ. L’app segmente, construit une matrice termes-documents (DTM), lance la CHD avec le moteur IRaMuTeQ-like, calcule les statistiques, génère un HTML surligné (concordancier), puis produit la CHD, AFC, NER, nuages de mots et réseaux de cooccurrences. L’onglet d’exploration permet de visualiser la CHD.
 
 ### Choix de la langue du dictionnaire spaCy
 
@@ -73,16 +70,12 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 
 - En mode **IRaMuTeQ-like**, la source de lemmatisation est forcée sur **Lexique (fr)**.
 - Donc, quand l'option **Retirer les stopwords** est activée, le filtrage se fait avec les stopwords **français de quanteda** (et non avec spaCy).
-- Le filtrage stopwords via **spaCy** n'est utilisé que lorsque la source de dictionnaire est **spaCy** (mode Rainette).
+- Le filtrage stopwords via **spaCy** n'est pas utilisé dans cette version centrée sur Lexique (fr).
 
 #### Effet sur le concordancier HTML
 
 - Quand **Supprimer la ponctuation** est cochée, la ponctuation est bien retirée dans les **données d’analyse**.
 - Le **concordancier HTML** continue d’afficher les segments issus du corpus, donc vous pouvez encore voir de la ponctuation dans le texte affiché.
-
-### Classification double (rainette2)
-
-- **Classification double** : l’application combine deux classifications rainette (res1 et res2) via rainette2, puis découpe l’arbre final avec k.
 
 ### Lemmatisation (option)
 
@@ -96,7 +89,7 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 ### Paramètres SpaCy/NER
 - Activer NER (spaCy) => Détections des entités nommées (NER) par spaCy (ex : "Paris" = "LOC"). Le modele spaCy "md" est un peu léger... pour cette tâche.
 
-### Exploration "Explore_rainette"
+### Exploration
 
 - **Classe** : sélection de la classe pour afficher les images et la table de statistiques associées.
 - **CHD** : affichage graphique de la CHD.
@@ -111,5 +104,5 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 
 ### Démarrage
 
-- L’application ne fait plus de mise à jour automatique de `rainette` au lancement.
-- Si vous voyez un ancien message `AUTO_UPDATE_RAINETTE=true -> tentative de mise à jour`, vérifiez que l’image/conteneur a bien été reconstruit avec la dernière version du dépôt.
+- L’application n'effectue aucune mise à jour automatique d'un moteur externe au lancement.
+- Si un ancien message de mise à jour automatique apparaît encore, reconstruisez l'image ou le conteneur avec la dernière version du dépôt.
