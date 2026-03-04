@@ -41,6 +41,19 @@ extraire_stats_chd_classe <- function(res_stats_df,
                                       seuil_p_significativite = 0.05,
                                       style = c("iramuteq_clone", "legacy")) {
   style <- match.arg(style)
+  max_p_num <- suppressWarnings(as.numeric(max_p))
+  if (!length(max_p_num) || !is.finite(max_p_num[[1]]) || is.na(max_p_num[[1]])) {
+    max_p_num <- 1
+  } else {
+    max_p_num <- max_p_num[[1]]
+  }
+
+  seuil_sig <- suppressWarnings(as.numeric(seuil_p_significativite))
+  if (!length(seuil_sig) || !is.finite(seuil_sig[[1]]) || is.na(seuil_sig[[1]])) {
+    seuil_sig <- 0.05
+  } else {
+    seuil_sig <- seuil_sig[[1]]
+  }
 
   if (is.null(res_stats_df) || nrow(res_stats_df) == 0) {
     return(data.frame(Message = "Statistiques indisponibles.", stringsAsFactors = FALSE))
@@ -58,8 +71,8 @@ extraire_stats_chd_classe <- function(res_stats_df,
   )
   df <- df[, colonnes_possibles, drop = FALSE]
 
-  if ("p" %in% names(df) && is.finite(max_p) && !is.na(max_p) && max_p < 1) {
-    df <- df[suppressWarnings(as.numeric(df$p)) <= max_p, , drop = FALSE]
+  if ("p" %in% names(df) && is.finite(max_p_num) && !is.na(max_p_num) && max_p_num < 1) {
+    df <- df[suppressWarnings(as.numeric(df$p)) <= max_p_num, , drop = FALSE]
   }
 
   if ("chi2" %in% names(df)) {
@@ -79,6 +92,11 @@ extraire_stats_chd_classe <- function(res_stats_df,
     chi2_sort[!is.finite(chi2_sort)] <- -Inf
     df <- df[order(-chi2_sort, -frequency_vals), , drop = FALSE]
   }
+
+  if (nrow(df) == 0) {
+    return(data.frame(Message = "Aucun terme disponible pour cette classe avec les filtres actuels.", stringsAsFactors = FALSE))
+  }
+
   if (is.null(n_max) || !is.finite(n_max) || is.na(n_max)) {
     n_max_use <- nrow(df)
   } else {
@@ -113,7 +131,6 @@ extraire_stats_chd_classe <- function(res_stats_df,
       stringsAsFactors = FALSE
     )
 
-    seuil_sig <- suppressWarnings(as.numeric(seuil_p_significativite))
     if (is.finite(seuil_sig) && !is.na(seuil_sig) && nrow(out) > 0) {
       idx_non_signif <- !is.na(p_vals) & p_vals > seuil_sig
       if (any(idx_non_signif)) {
