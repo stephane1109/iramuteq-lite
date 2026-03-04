@@ -22,8 +22,7 @@ ui_resultats_chd_iramuteq <- function() {
       ),
       tabPanel(
         "Nuage de mots",
-        tags$h3("Nuage de mots par classe"),
-        selectInput("classe_viz_iramuteq", "Classe", choices = c("1"), selected = "1"),
+        tags$h3("Nuages de mots par classe"),
         uiOutput("ui_wordcloud_iramuteq")
       )
     )

@@ -58,6 +58,7 @@ generer_wordclouds_iramuteq <- function(res_stats_df,
         scale = c(8, 0.8),
         min.freq = 0,
         random.order = FALSE,
+        rot.per = 0,
         max.words = nrow(df_stats_cl),
         colors = RColorBrewer::brewer.pal(8, "Dark2")
       ))

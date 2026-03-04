@@ -409,23 +409,32 @@ register_events_lancer <- function(input, output, session, rv) {
     output$ui_wordcloud_iramuteq <- renderUI({
       req(rv$export_dir, rv$exports_prefix)
 
-      classe_sel <- as.character(input$classe_viz_iramuteq)
-      if (length(classe_sel) != 1 || is.na(classe_sel) || !nzchar(classe_sel)) {
-        return(tags$p("Sélectionne une classe pour afficher le nuage de mots."))
+      wc_files <- list.files(
+        file.path(rv$export_dir, "wordclouds"),
+        pattern = "^cluster_[0-9]+_wordcloud\\.png$",
+        full.names = FALSE
+      )
+      if (length(wc_files) == 0) {
+        mode_label <- if (identical(rv$res_type, "iramuteq")) "IRaMuTeQ-like" else "analyse"
+        return(tags$p(paste0("Aucun nuage de mots disponible (", mode_label, ").")))
       }
 
-      src_rel <- file.path("wordclouds", paste0("cluster_", classe_sel, "_wordcloud.png"))
-      if (!file.exists(file.path(rv$export_dir, src_rel))) {
-        mode_label <- if (identical(rv$res_type, "iramuteq")) "IRaMuTeQ-like" else "analyse"
-        return(tags$p(paste0("Aucun nuage de mots disponible pour cette classe (", mode_label, ").")))
-      }
+      wc_classes <- gsub("^cluster_([0-9]+)_wordcloud\\.png$", "\\1", wc_files)
+      order_idx <- order(suppressWarnings(as.integer(wc_classes)))
 
       tags$div(
-        style = "text-align: center;",
-        tags$img(
-          src = paste0("/", rv$exports_prefix, "/", src_rel),
-          style = "max-width: 100%; height: auto; border: 1px solid #999; display: inline-block;"
-        )
+        lapply(order_idx, function(i) {
+          classe_lbl <- wc_classes[[i]]
+          src_rel <- file.path("wordclouds", wc_files[[i]])
+          tags$div(
+            style = "text-align: center; margin-bottom: 18px;",
+            tags$h4(paste("Classe", classe_lbl)),
+            tags$img(
+              src = paste0("/", rv$exports_prefix, "/", src_rel),
+              style = "max-width: 100%; height: auto; border: 1px solid #999; display: inline-block;"
+            )
+          )
+        })
       )
     })
 
@@ -1014,16 +1023,6 @@ register_events_lancer <- function(input, output, session, rv) {
           classes_uniques <- sort(unique(as.integer(docvars(filtered_corpus_ok)$Classes)))
           classes_uniques <- classes_uniques[is.finite(classes_uniques)]
 
-          if (length(classes_uniques) > 0) {
-            classes_choices <- as.character(classes_uniques)
-            updateSelectInput(
-              session,
-              "classe_viz_iramuteq",
-              choices = classes_choices,
-              selected = classes_choices[[1]]
-            )
-          }
-
           if (!identical(rv$res_type, "iramuteq")) {
             for (cl in classes_uniques) {
             top_n_demande <- suppressWarnings(as.integer(input$top_n))
@@ -1045,8 +1044,10 @@ register_events_lancer <- function(input, output, session, rv) {
                 suppressWarnings(wordcloud(
                   words = df_stats_cl$Terme,
                   freq = df_stats_cl$chi2,
-                  scale = c(10, 0.5),
+                  scale = c(8, 0.8),
                   min.freq = 0,
+                  random.order = FALSE,
+                  rot.per = 0,
                   max.words = nrow(df_stats_cl),
                   colors = brewer.pal(8, "Dark2")
                 ))
