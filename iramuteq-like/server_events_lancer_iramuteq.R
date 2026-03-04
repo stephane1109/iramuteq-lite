@@ -75,7 +75,10 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
     if (!exists("split_segments", mode = "function", inherits = TRUE)) {
-      split_segments <- function(corpus, segment_size = 40) {
+      split_segments <- function(corpus,
+                                 segment_size = 40,
+                                 remove_punct = FALSE,
+                                 remove_numbers = FALSE) {
         segment_size <- suppressWarnings(as.integer(segment_size))
         if (!is.finite(segment_size) || is.na(segment_size) || segment_size < 1) segment_size <- 40L
 
@@ -88,7 +91,15 @@ register_events_lancer <- function(input, output, session, rv) {
         out_src <- character(0)
 
         for (i in seq_along(docs)) {
-          tok <- unlist(strsplit(docs[[i]], "\\s+", perl = TRUE), use.names = FALSE)
+          tok_doc <- quanteda::tokens(
+            docs[[i]],
+            remove_punct = isTRUE(remove_punct),
+            remove_numbers = isTRUE(remove_numbers),
+            remove_symbols = TRUE,
+            remove_separators = TRUE,
+            split_hyphens = FALSE
+          )
+          tok <- as.character(tok_doc[[1]])
           tok <- tok[nzchar(tok)]
           if (length(tok) == 0) next
 
@@ -115,10 +126,21 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
     if (!exists("calculer_stats_corpus", mode = "function", inherits = TRUE)) {
-      calculer_stats_corpus <- function(chemin_fichier, corpus_segments, nom_corpus = NULL) {
+      calculer_stats_corpus <- function(chemin_fichier,
+                                        corpus_segments,
+                                        nom_corpus = NULL,
+                                        remove_punct = FALSE,
+                                        remove_numbers = FALSE) {
         lignes <- tryCatch(readLines(chemin_fichier, encoding = "UTF-8", warn = FALSE), error = function(e) character(0))
-        textes <- as.character(corpus_segments)
-        tokens <- unlist(strsplit(paste(textes, collapse = " "), "\\s+", perl = TRUE), use.names = FALSE)
+        tokens_obj <- quanteda::tokens(
+          corpus_segments,
+          remove_punct = isTRUE(remove_punct),
+          remove_numbers = isTRUE(remove_numbers),
+          remove_symbols = TRUE,
+          remove_separators = TRUE,
+          split_hyphens = FALSE
+        )
+        tokens <- unlist(tokens_obj, use.names = FALSE)
         tokens <- tokens[nzchar(tokens)]
 
         n_tokens <- length(tokens)
@@ -590,14 +612,21 @@ register_events_lancer <- function(input, output, session, rv) {
           avancer(0.14, "Segmentation")
           rv$statut <- "Segmentation..."
           segment_size <- input$segment_size
-          corpus <- split_segments(corpus, segment_size = segment_size)
+          corpus <- split_segments(
+            corpus,
+            segment_size = segment_size,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres)
+          )
           rv$min_docfreq_auto <- calculer_min_docfreq_iramuteq(ndoc(corpus))
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
           stats_corpus <- calculer_stats_corpus(
             chemin_fichier = chemin_fichier,
             corpus_segments = corpus,
-            nom_corpus = input$fichier_corpus$name
+            nom_corpus = input$fichier_corpus$name,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres)
           )
           if (is.null(stats_corpus)) {
             rv$stats_corpus_df <- NULL
