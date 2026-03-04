@@ -349,19 +349,10 @@ server <- function(input, output, session) {
       return(invisible(NULL))
     }
 
-    display_method <- "iramuteq_blocks"
-    if (!is.null(input$iramuteq_dendro_display_method)) {
-      display_method <- as.character(input$iramuteq_dendro_display_method)
-    }
-    if (!display_method %in% c("standard", "compact", "iramuteq_blocks")) {
-      display_method <- "iramuteq_blocks"
-    }
-
     tracer_dendogramme_iramuteq_ui(
       rv = rv,
       top_n_terms = 4,
-      orientation = "vertical",
-      display_method = display_method
+      orientation = "vertical"
     )
   })
 
