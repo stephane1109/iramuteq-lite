@@ -398,32 +398,15 @@ register_events_lancer <- function(input, output, session, rv) {
       html_existant <- candidats_html[file.exists(candidats_html)]
 
       if (length(html_existant) == 0) {
-        html_diag <- file.path(rv$export_dir, "concordancier.html")
-        diag_lines <- c(
-          "<html><head><meta charset='utf-8'/></head><body>",
-          "<h2>Concordancier indisponible</h2>",
-          "<p>Le fichier du concordancier HTML n'est pas disponible pour cette analyse.</p>",
-          "<p>Relance l'analyse puis vérifie les logs si le problème persiste.</p>",
-          "</body></html>"
-        )
-
-        ok_diag <- tryCatch({
-          writeLines(diag_lines, html_diag, useBytes = TRUE)
-          file.exists(html_diag)
-        }, error = function(e) {
-          FALSE
-        })
-
-        if (isTRUE(ok_diag)) {
-          rv$html_file <- html_diag
-          html_existant <- html_diag
-        } else {
-          return(tags$div(
-            style = "padding: 12px;",
-            tags$p("Le fichier du concordancier HTML n'est pas disponible pour cette analyse."),
-            tags$p("Relance l'analyse puis vérifie les logs si le problème persiste.")
-          ))
-        }
+        return(tags$pre(
+          style = "padding: 12px; white-space: pre-wrap;",
+          paste(
+            "Concordancier indisponible",
+            "Le fichier du concordancier HTML n'est pas disponible pour cette analyse.",
+            "Relance l'analyse puis vérifie les logs si le problème persiste.",
+            sep = "\n\n"
+          )
+        ))
       }
 
       src_html <- html_existant[[1]]
