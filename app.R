@@ -398,7 +398,7 @@ server <- function(input, output, session) {
         extraire_stats_chd_classe(
           rv$res_stats_df,
           classe = cl,
-          n_max = 100,
+          n_max = NULL,
           show_negative = FALSE,
           max_p = if (isTRUE(input$filtrer_affichage_pvalue)) input$max_p else 1,
           seuil_p_significativite = input$max_p,

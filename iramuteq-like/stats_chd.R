@@ -35,7 +35,7 @@ formatter_6_decimales_chd <- function(x) {
 
 extraire_stats_chd_classe <- function(res_stats_df,
                                       classe,
-                                      n_max = 50,
+                                      n_max = NULL,
                                       show_negative = FALSE,
                                       max_p = 1,
                                       seuil_p_significativite = 0.05,
@@ -79,7 +79,15 @@ extraire_stats_chd_classe <- function(res_stats_df,
     chi2_sort[!is.finite(chi2_sort)] <- -Inf
     df <- df[order(-chi2_sort, -frequency_vals), , drop = FALSE]
   }
-  df <- utils::head(df, n_max)
+  if (is.null(n_max) || !is.finite(n_max) || is.na(n_max)) {
+    n_max_use <- nrow(df)
+  } else {
+    n_max_use <- as.integer(n_max)
+    if (!is.finite(n_max_use) || is.na(n_max_use) || n_max_use < 1) {
+      n_max_use <- nrow(df)
+    }
+  }
+  df <- utils::head(df, n_max_use)
 
   if (identical(style, "iramuteq_clone")) {
     eff_st <- if ("eff_st" %in% names(df)) suppressWarnings(as.numeric(df$eff_st)) else round(suppressWarnings(as.numeric(df$docprop)) * suppressWarnings(as.numeric(df$eff_total)))
