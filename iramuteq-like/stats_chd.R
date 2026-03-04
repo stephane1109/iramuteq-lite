@@ -97,10 +97,11 @@ extraire_stats_chd_classe <- function(res_stats_df,
     return(data.frame(Message = "Aucun terme disponible pour cette classe avec les filtres actuels.", stringsAsFactors = FALSE))
   }
 
-  if (is.null(n_max) || !is.finite(n_max) || is.na(n_max)) {
+  n_max_num <- suppressWarnings(as.numeric(n_max))
+  if (is.null(n_max) || !length(n_max_num) || !is.finite(n_max_num[[1]]) || is.na(n_max_num[[1]])) {
     n_max_use <- nrow(df)
   } else {
-    n_max_use <- as.integer(n_max)
+    n_max_use <- as.integer(n_max_num[[1]])
     if (!is.finite(n_max_use) || is.na(n_max_use) || n_max_use < 1) {
       n_max_use <- nrow(df)
     }
