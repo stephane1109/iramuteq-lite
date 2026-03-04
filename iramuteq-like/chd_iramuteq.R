@@ -411,28 +411,20 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
                                               classes = NULL,
                                               res_stats_df = NULL,
                                               top_n_terms = 4,
-                                              orientation = c("vertical", "horizontal"),
-                                              display_method = c("standard", "compact", "iramuteq_blocks")) {
+                                              orientation = c("vertical", "horizontal")) {
   orientation <- match.arg(orientation)
-  display_method <- match.arg(display_method)
 
-  if (is.null(chd_obj)) {
+  if (!requireNamespace("ape", quietly = TRUE)) {
     plot.new()
-    text(0.5, 0.5, "Dendrogramme CHD indisponible.", cex = 1.1)
+    text(0.5, 0.5, "Dendrogramme indisponible : package 'ape' requis.", cex = 1.1)
     return(invisible(NULL))
   }
 
   n1 <- .normaliser_n1_chd(chd_obj$n1)
-  if (is.null(chd_obj$list_fille) || is.null(n1)) {
+  list_fille <- chd_obj$list_fille
+  if (is.null(n1) || !is.list(list_fille) || !length(list_fille)) {
     plot.new()
     text(0.5, 0.5, "Dendrogramme CHD indisponible.", cex = 1.1)
-    return(invisible(NULL))
-  }
-
-  list_fille <- chd_obj$list_fille
-  if (!is.list(list_fille) || length(list_fille) == 0) {
-    plot.new()
-    text(0.5, 0.5, "Dendrogramme CHD indisponible (list_fille vide).", cex = 1.1)
     return(invisible(NULL))
   }
 
@@ -440,198 +432,104 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
   if (is.null(noms) || any(!nzchar(noms))) noms <- as.character(seq_along(list_fille))
   map_filles <- stats::setNames(lapply(list_fille, function(x) as.integer(x)), noms)
 
-  meres <- suppressWarnings(as.integer(names(map_filles)))
-  meres <- meres[is.finite(meres)]
-  enfants <- unique(as.integer(unlist(map_filles, use.names = FALSE)))
-  enfants <- enfants[is.finite(enfants)]
-
-  racines <- setdiff(meres, enfants)
-  racine <- if (length(racines)) racines[[1]] else if (length(meres)) meres[[1]] else NA_integer_
-  if (!is.finite(racine)) {
-    feuilles_n1 <- suppressWarnings(as.integer(n1[, ncol(n1)]))
-    feuilles_n1 <- feuilles_n1[is.finite(feuilles_n1)]
-    if (length(feuilles_n1)) racine <- min(feuilles_n1, na.rm = TRUE)
-  }
-
-  if (!is.finite(racine)) {
-    plot.new()
-    text(0.5, 0.5, "Structure CHD invalide.", cex = 1.1)
-    return(invisible(NULL))
-  }
-
-  get_filles <- function(node) {
-    key <- as.character(node)
-    x <- map_filles[[key]]
-    x <- x[is.finite(x)]
-    if (is.null(x)) integer(0) else as.integer(x)
-  }
-
-  terminales <- suppressWarnings(as.integer(terminales))
-  terminales <- terminales[is.finite(terminales)]
-  terminales <- unique(terminales)
-
-  # Source de vérité pour le nombre de classes à afficher :
-  # 1) résultats statistiques CHD (si disponibles), sinon
-  # 2) vecteur des classes finales documentaires.
-  # Comme dans iramuteq_clone_v3 (cutree(..., k = clnb)), on borne l'affichage
-  # aux classes finales réellement exploitées.
   classes_utiles <- integer(0)
   if (!is.null(res_stats_df) && is.data.frame(res_stats_df) && "Classe" %in% names(res_stats_df)) {
     classes_stats <- suppressWarnings(as.integer(res_stats_df$Classe))
     classes_stats <- classes_stats[is.finite(classes_stats) & classes_stats > 0]
     classes_utiles <- sort(unique(classes_stats))
   }
-
   if (!length(classes_utiles) && !is.null(classes)) {
     classes_int <- suppressWarnings(as.integer(classes))
     classes_int <- classes_int[is.finite(classes_int) & classes_int > 0]
     classes_utiles <- sort(unique(classes_int))
   }
 
+  terminales <- suppressWarnings(as.integer(terminales))
+  terminales <- unique(terminales[is.finite(terminales)])
   if (length(classes_utiles) && length(terminales)) {
-    idx_valides <- classes_utiles[classes_utiles >= 1L & classes_utiles <= length(terminales)]
-    terminales <- terminales[idx_valides]
-    classes_utiles <- idx_valides
+    keep <- classes_utiles >= 1L & classes_utiles <= length(terminales)
+    classes_utiles <- classes_utiles[keep]
+    terminales <- terminales[classes_utiles]
   }
 
-  utiliser_terminales <- length(terminales) > 0
+  edges_df <- do.call(rbind, lapply(names(map_filles), function(mere_name) {
+    mere <- suppressWarnings(as.integer(mere_name))
+    filles <- suppressWarnings(as.integer(map_filles[[mere_name]]))
+    filles <- filles[is.finite(filles)]
+    if (!is.finite(mere) || !length(filles)) return(NULL)
+    cbind(parent = rep.int(mere, length(filles)), child = filles)
+  }))
 
-  leaves <- integer(0)
-  visited <- integer(0)
-  walk_leaves <- function(node) {
-    if (node %in% visited) return(invisible(NULL))
-    visited <<- c(visited, node)
-
-    if (isTRUE(utiliser_terminales) && node %in% terminales) {
-      leaves <<- c(leaves, node)
-      return(invisible(NULL))
-    }
-
-    filles <- get_filles(node)
-    if (!length(filles)) {
-      if (!isTRUE(utiliser_terminales)) {
-        leaves <<- c(leaves, node)
-      }
-      return(invisible(NULL))
-    }
-    for (f in filles) walk_leaves(f)
-  }
-  walk_leaves(racine)
-
-  if (isTRUE(utiliser_terminales)) {
-    terminales_atteintes <- intersect(unique(terminales), unique(visited))
-    leaves <- unique(c(leaves, terminales_atteintes))
-  }
-
-  if (!length(leaves) && !length(classes_utiles)) {
-    leaves <- sort(unique(suppressWarnings(as.integer(n1[, ncol(n1)]))))
-    leaves <- leaves[is.finite(leaves)]
-  }
-  if (!length(leaves)) {
+  if (is.null(edges_df) || !nrow(edges_df)) {
     plot.new()
-    text(0.5, 0.5, "Aucune feuille exploitable pour le dendrogramme.", cex = 1.1)
+    text(0.5, 0.5, "Dendrogramme CHD indisponible (arbre vide).", cex = 1.1)
     return(invisible(NULL))
   }
 
-  leaves <- unique(leaves)
-  y_map <- stats::setNames(seq_along(leaves), as.character(leaves))
-  pos <- list()
-  seen <- integer(0)
-
-  layout_phylo <- function(node, depth = 0L) {
-    if (node %in% seen) return(pos[[as.character(node)]])
-    seen <<- c(seen, node)
-
-    if (isTRUE(utiliser_terminales) && node %in% leaves) {
-      y <- unname(y_map[[as.character(node)]])
-      if (is.null(y) || !is.finite(y)) y <- max(unname(y_map)) + 1
-      pos[[as.character(node)]] <<- c(x = depth, y = y)
-      return(pos[[as.character(node)]])
-    }
-
-    filles <- get_filles(node)
-    if (!length(filles)) {
-      y <- unname(y_map[[as.character(node)]])
-      if (is.null(y) || !is.finite(y)) y <- max(unname(y_map)) + 1
-      pos[[as.character(node)]] <<- c(x = depth, y = y)
-      return(pos[[as.character(node)]])
-    }
-
-    child_pos <- lapply(filles, function(f) layout_phylo(f, depth + 1L))
-    ys <- vapply(child_pos, function(v) as.numeric(v[["y"]]), numeric(1))
-    pos[[as.character(node)]] <<- c(x = depth, y = mean(ys))
-    return(pos[[as.character(node)]])
-  }
-
-  layout_phylo(racine, 0L)
-
-  if (!length(pos)) {
-    plot.new()
-    text(0.5, 0.5, "Dendrogramme CHD indisponible (positions vides).", cex = 1.1)
-    return(invisible(NULL))
-  }
-
-  all_pos <- do.call(rbind, pos)
-  if (is.null(dim(all_pos))) {
-    all_pos <- matrix(all_pos, nrow = 1L, dimnames = list(names(pos)[1], names(all_pos)))
-  }
-  all_pos <- as.matrix(all_pos)
-  if (is.null(colnames(all_pos)) || !all(c("x", "y") %in% colnames(all_pos))) {
-    plot.new()
-    text(0.5, 0.5, "Dendrogramme CHD indisponible (positions invalides).", cex = 1.1)
-    return(invisible(NULL))
-  }
-  depth_max <- max(all_pos[, "x"], na.rm = TRUE)
-  order_max <- max(all_pos[, "y"], na.rm = TRUE)
-
-  node_ids <- suppressWarnings(as.integer(rownames(all_pos)))
-  node_ids[!is.finite(node_ids)] <- NA_integer_
-  tip_idx <- which(node_ids %in% leaves)
-
-  tip_cols <- rep("#5B8FF9", nrow(all_pos))
-  if (length(terminales)) tip_cols[which(node_ids %in% terminales)] <- "#d62728"
-
-  tip_labels <- paste0("Classe ", rownames(all_pos)[tip_idx])
-  tip_nodes_chr <- rownames(all_pos)[tip_idx]
-  classe_par_noeud <- stats::setNames(rep(NA_integer_, length(tip_nodes_chr)), tip_nodes_chr)
+  edges_df <- unique(as.data.frame(edges_df))
+  all_nodes <- sort(unique(c(edges_df$parent, edges_df$child)))
+  parent_nodes <- sort(unique(edges_df$parent))
+  tip_nodes <- setdiff(all_nodes, parent_nodes)
 
   if (length(terminales)) {
+    term_tips <- terminales[terminales %in% tip_nodes]
+    if (length(term_tips)) tip_nodes <- unique(term_tips)
+  }
+
+  if (!length(tip_nodes)) {
+    plot.new()
+    text(0.5, 0.5, "Aucune classe terminale exploitable.", cex = 1.1)
+    return(invisible(NULL))
+  }
+
+  internal_nodes <- setdiff(all_nodes, tip_nodes)
+  idx_tip <- stats::setNames(seq_along(tip_nodes), as.character(tip_nodes))
+  idx_internal <- stats::setNames(length(tip_nodes) + seq_along(internal_nodes), as.character(internal_nodes))
+  idx_all <- c(idx_tip, idx_internal)
+
+  edge_keep <- edges_df$parent %in% names(idx_all) & edges_df$child %in% names(idx_all)
+  edges_df <- edges_df[edge_keep, , drop = FALSE]
+  if (!nrow(edges_df)) {
+    plot.new()
+    text(0.5, 0.5, "Dendrogramme CHD indisponible (structure invalide).", cex = 1.1)
+    return(invisible(NULL))
+  }
+
+  edge <- cbind(
+    parent = unname(idx_all[as.character(edges_df$parent)]),
+    child = unname(idx_all[as.character(edges_df$child)])
+  )
+
+  Nnode <- max(1L, length(internal_nodes))
+
+  class_by_tip <- stats::setNames(rep(NA_integer_, length(tip_nodes)), as.character(tip_nodes))
+  if (length(terminales)) {
+    class_ids <- if (length(classes_utiles) == length(terminales)) classes_utiles else seq_along(terminales)
     for (i in seq_along(terminales)) {
-      node <- terminales[[i]]
-      idx_node <- which(tip_nodes_chr == as.character(node))
-      if (!length(idx_node)) next
-      tip_labels[idx_node] <- paste0("Classe ", i)
-      classe_par_noeud[as.character(node)] <- i
+      node <- as.character(terminales[[i]])
+      if (node %in% names(class_by_tip)) class_by_tip[[node]] <- class_ids[[i]]
     }
   }
 
+  fallback <- which(!is.finite(class_by_tip))
+  if (length(fallback)) class_by_tip[fallback] <- seq_along(fallback)
+
+  pct_par_classe <- NULL
   if (!is.null(classes)) {
     classes <- suppressWarnings(as.integer(classes))
     classes <- classes[is.finite(classes) & classes > 0]
-    if (length(classes) && length(terminales)) {
-      pct_par_classe <- prop.table(table(classes)) * 100
-      for (i in seq_along(terminales)) {
-        node <- terminales[[i]]
-        idx_node <- which(tip_nodes_chr == as.character(node))
-        if (!length(idx_node)) next
-        pct <- unname(pct_par_classe[as.character(i)])
-        if (!is.finite(pct) || is.na(pct)) pct <- 0
-        tip_labels[idx_node] <- paste0("Classe ", i, " (", format(round(pct, 1), nsmall = 1), " %)")
-      }
-    }
+    if (length(classes)) pct_par_classe <- prop.table(table(classes)) * 100
   }
 
   top_n_terms <- suppressWarnings(as.integer(top_n_terms))
   if (!is.finite(top_n_terms) || is.na(top_n_terms) || top_n_terms < 1L) top_n_terms <- 1L
   termes_par_classe <- list()
-  if (!is.null(res_stats_df) && is.data.frame(res_stats_df) && nrow(res_stats_df) > 0 && all(c("Classe", "Terme") %in% names(res_stats_df))) {
+  if (!is.null(res_stats_df) && is.data.frame(res_stats_df) && all(c("Classe", "Terme") %in% names(res_stats_df))) {
     df_terms <- res_stats_df
-    classes_num <- suppressWarnings(as.integer(df_terms$Classe))
-    df_terms <- df_terms[is.finite(classes_num) & !is.na(df_terms$Terme) & nzchar(as.character(df_terms$Terme)), , drop = FALSE]
     df_terms$Classe <- suppressWarnings(as.integer(df_terms$Classe))
-
-    for (i in seq_along(terminales)) {
-      sous <- df_terms[df_terms$Classe == i, , drop = FALSE]
+    df_terms <- df_terms[is.finite(df_terms$Classe) & nzchar(as.character(df_terms$Terme)), , drop = FALSE]
+    for (cl in unique(class_by_tip)) {
+      sous <- df_terms[df_terms$Classe == cl, , drop = FALSE]
       if (!nrow(sous)) next
       if ("chi2" %in% names(sous)) {
         chi <- suppressWarnings(as.numeric(sous$chi2))
@@ -640,256 +538,46 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       }
       termes <- unique(as.character(sous$Terme))
       termes <- termes[nzchar(termes)]
-      if (length(termes)) {
-        termes_par_classe[[as.character(i)]] <- paste(utils::head(termes, top_n_terms), collapse = ", ")
-      }
+      if (length(termes)) termes_par_classe[[as.character(cl)]] <- paste(utils::head(termes, top_n_terms), collapse = ", ")
     }
   }
 
-  if (identical(orientation, "vertical")) {
-    if (identical(display_method, "iramuteq_blocks")) {
-      op <- par(no.readonly = TRUE)
-      on.exit(par(op), add = TRUE)
-      par(mar = c(1.4, 1.4, 2.6, 1.4), xpd = NA)
-
-      class_ids <- sort(unique(na.omit(as.integer(classe_par_noeud))))
-      if (!length(class_ids) && length(terminales)) class_ids <- seq_along(terminales)
-      if (!length(class_ids)) {
-        plot.new()
-        text(0.5, 0.5, "Aucune classe terminale disponible.", cex = 1.1)
-        return(invisible(NULL))
-      }
-
-      cols_palette <- c("#ff3300", "#00ff00", "#1f3bff", "#ff00a8", "#00d4ff", "#ffaa00")
-      class_cols <- stats::setNames(cols_palette[(seq_along(class_ids) - 1L) %% length(cols_palette) + 1L], as.character(class_ids))
-
-      pct_par_classe <- NULL
-      if (!is.null(classes)) {
-        classes <- suppressWarnings(as.integer(classes))
-        classes <- classes[is.finite(classes) & classes > 0]
-        if (length(classes)) pct_par_classe <- prop.table(table(classes)) * 100
-      }
-
-      order_nodes <- tip_nodes_chr
-      if (!length(order_nodes) && length(terminales)) order_nodes <- as.character(terminales)
-      classes_ord <- suppressWarnings(as.integer(classe_par_noeud[order_nodes]))
-      keep <- is.finite(classes_ord)
-      order_nodes <- order_nodes[keep]
-      classes_ord <- classes_ord[keep]
-      if (!length(classes_ord)) classes_ord <- class_ids
-
-      n <- length(classes_ord)
-      x_pos <- seq(0.12, 0.88, length.out = n)
-
-      plot.new()
-      plot.window(xlim = c(0, 1), ylim = c(0, 1))
-
-      y_top <- 0.90
-      y_box_top <- 0.78
-      y_box_bot <- 0.64
-      box_w <- min(0.28, if (n > 1) 0.72 / (n - 1) else 0.3)
-
-      if (n >= 2) {
-        mid <- mean(x_pos)
-        segments(mid, y_top, min(x_pos), y_box_top + 0.02, lwd = 2.5, col = "#111111")
-        segments(mid, y_top, max(x_pos), y_box_top + 0.02, lwd = 2.5, col = "#111111")
-      }
-
-      for (i in seq_len(n)) {
-        cl <- classes_ord[i]
-        col_cl <- unname(class_cols[as.character(cl)])
-        if (is.na(col_cl) || !nzchar(col_cl)) col_cl <- "#1f3bff"
-        x <- x_pos[i]
-
-        rect(x - box_w / 2, y_box_bot, x + box_w / 2, y_box_top, col = col_cl, border = NA)
-        segments(x, y_box_top + 0.02, x, y_box_top, lwd = 2.5, col = "#111111")
-
-        text(x, y_box_top + 0.05, labels = paste0("classe ", cl), col = col_cl, cex = 1.2, font = 2)
-        pct <- if (!is.null(pct_par_classe)) unname(pct_par_classe[as.character(cl)]) else NA_real_
-        pct_lbl <- if (is.finite(pct)) paste0(format(round(pct, 1), trim = TRUE), " %") else ""
-        if (nzchar(pct_lbl)) text(x, y_box_bot + 0.015, labels = pct_lbl, cex = 0.9, col = "#111111")
-
-        termes <- character(0)
-        if (!is.null(termes_par_classe[[as.character(cl)]])) {
-          termes <- strsplit(termes_par_classe[[as.character(cl)]], "\\s*,\\s*")[[1]]
-          termes <- termes[nzchar(termes)]
-        }
-
-        if (length(termes)) {
-          y0 <- 0.58
-          step <- 0.055
-          for (j in seq_len(min(length(termes), 9L))) {
-            text(x - box_w / 2, y0 - (j - 1) * step, labels = termes[j], adj = c(0, 1), col = col_cl, cex = 1.6, font = 2)
-          }
-        }
-      }
-
-      title(main = "Dendrogramme CHD IRaMuTeQ-like (style IRaMuTeQ)")
-      return(invisible(NULL))
+  tip_label <- vapply(names(class_by_tip), function(node) {
+    cl <- class_by_tip[[node]]
+    pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
+    pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
+    termes_txt <- termes_par_classe[[as.character(cl)]]
+    if (is.null(termes_txt) || !nzchar(termes_txt)) {
+      paste0("Classe ", cl, pct_txt)
+    } else {
+      paste0("Classe ", cl, pct_txt, "\n", termes_txt)
     }
+  }, FUN.VALUE = character(1))
 
-    op <- par(no.readonly = TRUE)
-    on.exit(par(op), add = TRUE)
-    par(mar = c(3.2, 2.8, 3.6, 1.5))
+  phy <- list(
+    edge = edge,
+    tip.label = unname(tip_label),
+    Nnode = Nnode,
+    root.edge = 1
+  )
+  class(phy) <- "phylo"
+  phy <- ape::reorder.phylo(phy, order = "cladewise", index.only = FALSE)
 
-    all_pos_plot <- cbind(x = all_pos[, "y", drop = TRUE], y = depth_max - all_pos[, "x", drop = TRUE])
-    all_pos_plot <- as.matrix(all_pos_plot)
-    x_max <- max(all_pos_plot[, "x"], na.rm = TRUE)
-    y_max <- max(all_pos_plot[, "y"], na.rm = TRUE)
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op), add = TRUE)
+  par(mar = c(2, 1, 3, 1))
 
-    plot(
-      NA,
-      xlim = c(0.5, x_max + 0.5),
-      ylim = c(if (length(termes_par_classe) && identical(display_method, "standard")) -1.6 else -0.8, y_max + 0.8),
-      axes = FALSE,
-      xlab = "",
-      ylab = "",
-      main = if (identical(display_method, "compact")) "Dendrogramme CHD IRaMuTeQ-like (compact)" else "Dendrogramme CHD IRaMuTeQ-like"
-    )
-
-    for (mere_name in names(map_filles)) {
-      mere <- suppressWarnings(as.integer(mere_name))
-      if (!is.finite(mere)) next
-      p_m <- pos[[as.character(mere)]]
-      if (is.null(p_m)) next
-      p_m_plot <- c(x = p_m[["y"]], y = depth_max - p_m[["x"]])
-
-      filles <- as.integer(map_filles[[mere_name]])
-      filles <- filles[is.finite(filles)]
-      if (!length(filles)) next
-
-      x_child <- numeric(0)
-      for (f in filles) {
-        p_f <- pos[[as.character(f)]]
-        if (!is.null(p_f)) x_child <- c(x_child, p_f[["y"]])
-      }
-      if (length(x_child) >= 2) {
-        segments(min(x_child), p_m_plot[["y"]], max(x_child), p_m_plot[["y"]], col = "#2f4f4f", lwd = 1.6)
-      }
-
-      for (f in filles) {
-        p_f <- pos[[as.character(f)]]
-        if (is.null(p_f)) next
-        p_f_plot <- c(x = p_f[["y"]], y = depth_max - p_f[["x"]])
-        segments(p_f_plot[["x"]], p_m_plot[["y"]], p_f_plot[["x"]], p_f_plot[["y"]], col = "#2f4f4f", lwd = 1.6)
-      }
-    }
-
-    if (length(tip_idx)) {
-      points(all_pos_plot[tip_idx, "x", drop = TRUE], all_pos_plot[tip_idx, "y", drop = TRUE], pch = 19, col = tip_cols[tip_idx], cex = 0.95)
-      text(x = all_pos_plot[tip_idx, "x", drop = TRUE], y = all_pos_plot[tip_idx, "y", drop = TRUE] - 0.18, labels = tip_labels, adj = c(0.5, 1), cex = 0.78)
-
-      if (length(termes_par_classe) && identical(display_method, "standard")) {
-        for (j in seq_along(tip_idx)) {
-          node_id <- tip_nodes_chr[j]
-          class_id <- suppressWarnings(as.integer(classe_par_noeud[[node_id]]))
-          if (!is.finite(class_id)) next
-          termes_lbl <- termes_par_classe[[as.character(class_id)]]
-          if (is.null(termes_lbl) || !nzchar(termes_lbl)) next
-          text(
-            x = all_pos_plot[tip_idx[j], "x", drop = TRUE],
-            y = all_pos_plot[tip_idx[j], "y", drop = TRUE] - 0.56,
-            labels = termes_lbl,
-            adj = c(0.5, 1),
-            cex = 0.66,
-            col = "#333333"
-          )
-        }
-      }
-
-      if (length(termes_par_classe) && identical(display_method, "compact")) {
-        legend_lines <- unlist(lapply(sort(names(termes_par_classe)), function(cl_id) {
-          paste0("Classe ", cl_id, " : ", termes_par_classe[[cl_id]])
-        }), use.names = FALSE)
-
-        if (length(legend_lines)) {
-          texte_legend <- paste(legend_lines, collapse = "\n")
-          mtext(texte_legend, side = 1, line = 0.4, adj = 0, cex = 0.62, col = "#333333")
-        }
-      }
-    }
-  } else {
-    op <- par(no.readonly = TRUE)
-    on.exit(par(op), add = TRUE)
-    par(mar = c(3.0, 2.6, 3.4, 8.5))
-
-    plot(
-      NA,
-      xlim = c(-0.2, depth_max + 1.4),
-      ylim = c(order_max + 0.6, 0.4),
-      axes = FALSE,
-      xlab = "",
-      ylab = "",
-      main = if (identical(display_method, "compact")) "Dendrogramme CHD IRaMuTeQ-like (phylogramme compact)" else "Dendrogramme CHD IRaMuTeQ-like (phylogramme)"
-    )
-
-    for (mere_name in names(map_filles)) {
-      mere <- suppressWarnings(as.integer(mere_name))
-      if (!is.finite(mere)) next
-      p_m <- pos[[as.character(mere)]]
-      if (is.null(p_m)) next
-
-      filles <- as.integer(map_filles[[mere_name]])
-      filles <- filles[is.finite(filles)]
-      if (!length(filles)) next
-
-      y_child <- numeric(0)
-      for (f in filles) {
-        p_f <- pos[[as.character(f)]]
-        if (!is.null(p_f)) y_child <- c(y_child, p_f[["y"]])
-      }
-      if (length(y_child) >= 2) {
-        segments(p_m[["x"]], min(y_child), p_m[["x"]], max(y_child), col = "#2f4f4f", lwd = 1.6)
-      }
-
-      for (f in filles) {
-        p_f <- pos[[as.character(f)]]
-        if (is.null(p_f)) next
-        segments(p_m[["x"]], p_f[["y"]], p_f[["x"]], p_f[["y"]], col = "#2f4f4f", lwd = 1.6)
-      }
-    }
-
-    if (length(tip_idx)) {
-      points(all_pos[tip_idx, "x", drop = TRUE], all_pos[tip_idx, "y", drop = TRUE], pch = 19, col = tip_cols[tip_idx], cex = 0.95)
-      text(x = all_pos[tip_idx, "x", drop = TRUE] + 0.12, y = all_pos[tip_idx, "y", drop = TRUE], labels = tip_labels, adj = c(0, 0.5), cex = 0.78)
-
-      if (length(termes_par_classe) && identical(display_method, "standard")) {
-        for (j in seq_along(tip_idx)) {
-          node_id <- tip_nodes_chr[j]
-          class_id <- suppressWarnings(as.integer(classe_par_noeud[[node_id]]))
-          if (!is.finite(class_id)) next
-          termes_lbl <- termes_par_classe[[as.character(class_id)]]
-          if (is.null(termes_lbl) || !nzchar(termes_lbl)) next
-          text(
-            x = all_pos[tip_idx[j], "x", drop = TRUE] + 0.12,
-            y = all_pos[tip_idx[j], "y", drop = TRUE] + 0.28,
-            labels = termes_lbl,
-            adj = c(0, 0.5),
-            cex = 0.66,
-            col = "#333333"
-          )
-        }
-      }
-
-      if (length(termes_par_classe) && identical(display_method, "compact")) {
-        legend_lines <- unlist(lapply(sort(names(termes_par_classe)), function(cl_id) {
-          paste0("Classe ", cl_id, " : ", termes_par_classe[[cl_id]])
-        }), use.names = FALSE)
-
-        if (length(legend_lines)) {
-          legend(
-            "bottomright",
-            legend = legend_lines,
-            bty = "n",
-            cex = 0.64,
-            text.col = "#333333",
-            inset = c(-0.02, -0.02),
-            xpd = NA
-          )
-        }
-      }
-    }
-  }
+  dir <- if (identical(orientation, "vertical")) "downwards" else "rightwards"
+  ape::plot.phylo(
+    phy,
+    type = "cladogram",
+    use.edge.length = FALSE,
+    direction = dir,
+    cex = 0.75,
+    no.margin = TRUE,
+    label.offset = 0.02,
+    main = "Dendrogramme CHD (package ape)"
+  )
 
   invisible(NULL)
 }
