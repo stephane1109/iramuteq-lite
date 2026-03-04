@@ -133,7 +133,7 @@ server <- function(input, output, session) {
     stats_zipf_df = NULL,
     min_docfreq_auto = 1L,
     min_docfreq_effectif = 1L,
-    min_docfreq_mode_label = "A"
+    min_docfreq_mode_label = "2"
   )
 
   if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
@@ -158,11 +158,11 @@ server <- function(input, output, session) {
     }
 
     if (is.null(mode_label) || !nzchar(mode_label)) {
-      mode_label <- "A"
+      mode_label <- "2"
     }
 
     paste0(
-      "Auto (A) = ", valeur_auto,
+      "Auto (2) = ", valeur_auto,
       " | Valeur appliquée = ", valeur_effective,
       " | Champ = ", mode_label
     )

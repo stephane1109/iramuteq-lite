@@ -118,8 +118,8 @@ ui <- fluidPage(
         tags$label("Fréquence minimale des termes (min_docfreq)"),
         textInput(
           "min_docfreq_mode",
-          "Mode min_docfreq (A = automatique, sinon valeur manuelle)",
-          value = "A",
+          "Valeur min_docfreq (2 = automatique, sinon valeur manuelle)",
+          value = "2",
           width = "100%"
         ),
         tags$div(
