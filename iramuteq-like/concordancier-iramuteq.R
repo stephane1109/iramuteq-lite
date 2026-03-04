@@ -146,10 +146,9 @@ generer_concordancier_iramuteq_html <- function(
 
     segments <- segments_by_class[[cl]]
     ids_cl <- names(segments)
-    if (length(ids_cl) == 0) {
-      writeLines("<p><em>Aucun segment.</em></p>", con)
-      writeLines("</div>", con)
-      next
+    if (length(ids_cl) == 0 || all(!nzchar(ids_cl))) {
+      # Fallback robuste: certains split() peuvent perdre les noms de documents.
+      ids_cl <- as.character(seq_along(segments))
     }
 
     textes_filtrage <- unname(segments)
@@ -179,8 +178,10 @@ generer_concordancier_iramuteq_html <- function(
     keep[is.na(keep)] <- FALSE
 
     segments_keep <- segments[keep]
+    ids_keep <- names(segments_keep)
     if (length(segments_keep) == 0 && length(segments) > 0) {
       segments_keep <- segments
+      ids_keep <- ids_cl
       if (!is.null(rv)) {
         ajouter_log(rv, paste0(
           "Concordancier IRaMuTeQ-like : classe ", cl,
@@ -220,7 +221,10 @@ generer_concordancier_iramuteq_html <- function(
 
     has_hl <- any(grepl("<span class='highlight'>", segments_hl, fixed = TRUE))
     if (!has_hl) {
-      textes_keep_idx <- textes_filtrage[keep]
+      textes_keep_idx <- textes_filtrage[ids_keep]
+      if (length(textes_keep_idx) == 0) {
+        textes_keep_idx <- textes_filtrage[keep]
+      }
       segments_hl_idx <- surligner_vecteur_html_unicode(
         unname(textes_keep_idx),
         motifs,
