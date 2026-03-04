@@ -35,3 +35,34 @@ appliquer_nettoyage_iramuteq <- function(textes,
 
   x
 }
+
+# Supprime les documents vides d'un DFM (somme de ligne nulle) et aligne
+# optionnellement les objets corpus/tokens selon le même masque.
+supprimer_docs_vides_dfm <- function(dfm_obj,
+                                     filtered_corpus = NULL,
+                                     tok = NULL,
+                                     logger = NULL) {
+  if (is.null(dfm_obj)) {
+    stop("supprimer_docs_vides_dfm: dfm_obj manquant.")
+  }
+
+  sommes_docs <- Matrix::rowSums(dfm_obj)
+  idx_non_vides <- !is.na(sommes_docs) & (sommes_docs > 0)
+
+  if (!any(idx_non_vides)) {
+    stop("Le DFM ne contient aucun segment non vide après prétraitement.")
+  }
+
+  nb_vides <- sum(!idx_non_vides)
+  if (nb_vides > 0 && is.function(logger)) {
+    logger(paste0("Segments vides supprimés du DFM : ", nb_vides, "."))
+  }
+
+  list(
+    dfm_obj = dfm_obj[idx_non_vides, ],
+    filtered_corpus = if (is.null(filtered_corpus)) NULL else filtered_corpus[idx_non_vides],
+    tok = if (is.null(tok)) NULL else tok[idx_non_vides],
+    idx_non_vides = idx_non_vides,
+    nb_vides = nb_vides
+  )
+}
