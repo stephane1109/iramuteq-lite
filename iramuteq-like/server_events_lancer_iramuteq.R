@@ -362,6 +362,14 @@ register_events_lancer <- function(input, output, session, rv) {
         return(tags$p("Concordancier IRaMuTeQ-like indisponible (mode de classification non supporté)."))
       }
 
+      if (!dir.exists(rv$export_dir)) {
+        return(tags$div(
+          style = "padding: 12px;",
+          tags$p("Le dossier d'exports est introuvable pour cette session."),
+          tags$p("Relance l'analyse pour régénérer les exports.")
+        ))
+      }
+
       if (is.null(rv$exports_prefix) || !nzchar(rv$exports_prefix)) {
         return(tags$div(
           style = "padding: 12px;",
@@ -390,11 +398,32 @@ register_events_lancer <- function(input, output, session, rv) {
       html_existant <- candidats_html[file.exists(candidats_html)]
 
       if (length(html_existant) == 0) {
-        return(tags$div(
-          style = "padding: 12px;",
-          tags$p("Le fichier du concordancier HTML n'est pas disponible pour cette analyse."),
-          tags$p("Relance l'analyse puis vérifie les logs si le problème persiste.")
-        ))
+        html_diag <- file.path(rv$export_dir, "concordancier.html")
+        diag_lines <- c(
+          "<html><head><meta charset='utf-8'/></head><body>",
+          "<h2>Concordancier indisponible</h2>",
+          "<p>Le fichier du concordancier HTML n'est pas disponible pour cette analyse.</p>",
+          "<p>Relance l'analyse puis vérifie les logs si le problème persiste.</p>",
+          "</body></html>"
+        )
+
+        ok_diag <- tryCatch({
+          writeLines(diag_lines, html_diag, useBytes = TRUE)
+          file.exists(html_diag)
+        }, error = function(e) {
+          FALSE
+        })
+
+        if (isTRUE(ok_diag)) {
+          rv$html_file <- html_diag
+          html_existant <- html_diag
+        } else {
+          return(tags$div(
+            style = "padding: 12px;",
+            tags$p("Le fichier du concordancier HTML n'est pas disponible pour cette analyse."),
+            tags$p("Relance l'analyse puis vérifie les logs si le problème persiste.")
+          ))
+        }
       }
 
       src_html <- html_existant[[1]]
@@ -1161,8 +1190,32 @@ register_events_lancer <- function(input, output, session, rv) {
             rv$html_file <- html_existants[[1]]
             ajouter_log(rv, paste0("Concordancier HTML validé : ", rv$html_file))
           } else {
-            rv$html_file <- html_file
-            ajouter_log(rv, "Concordancier HTML introuvable après relance. Vérifier les logs de génération du concordancier.")
+            html_diag <- file.path(rv$export_dir, "concordancier.html")
+            diag_lines <- c(
+              "<html><head><meta charset='utf-8'/>",
+              "<style>body{font-family:Arial,sans-serif;line-height:1.5;padding:1rem 1.2rem;} code{background:#f7f7f7;padding:.1rem .3rem;border-radius:3px;}</style>",
+              "</head><body>",
+              "<h2>Concordancier indisponible</h2>",
+              "<p>Le concordancier HTML n'a pas pu être généré automatiquement pour cette analyse.</p>",
+              "<p>Vérifie le journal de l'analyse puis relance si nécessaire.</p>",
+              paste0("<p><strong>Dossier d'exports :</strong> <code>", htmltools::htmlEscape(rv$export_dir), "</code></p>"),
+              "</body></html>"
+            )
+
+            ok_diag <- tryCatch({
+              writeLines(diag_lines, html_diag, useBytes = TRUE)
+              file.exists(html_diag)
+            }, error = function(e) {
+              ajouter_log(rv, paste0("Concordancier HTML : impossible d'écrire le fichier de diagnostic - ", e$message))
+              FALSE
+            })
+
+            rv$html_file <- if (isTRUE(ok_diag)) html_diag else html_file
+            if (isTRUE(ok_diag)) {
+              ajouter_log(rv, "Concordancier HTML introuvable après relance. Fichier de diagnostic généré dans exports/concordancier.html.")
+            } else {
+              ajouter_log(rv, "Concordancier HTML introuvable après relance. Vérifier les logs de génération du concordancier.")
+            }
           }
 
           avancer(0.96, "ZIP")
