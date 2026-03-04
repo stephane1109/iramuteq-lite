@@ -43,19 +43,26 @@ register_events_lancer <- function(input, output, session, rv) {
         headers <- grepl("^\\*\\*\\*\\*", lignes)
         textes <- character(0)
         ids <- character(0)
+        etoiles_par_doc <- vector("list", 0)
 
         if (any(headers)) {
           idx <- which(headers)
           bornes <- c(idx, length(lignes) + 1L)
           for (i in seq_along(idx)) {
+            entete <- as.character(lignes[idx[[i]]])
+            tokens_entete <- unlist(regmatches(entete, gregexpr("\\*[[:alnum:]_\\-]+", entete, perl = TRUE)), use.names = FALSE)
+            tokens_entete <- unique(tokens_entete[grepl("^\\*[[:alnum:]_\\-]+$", tokens_entete)])
+
             debut <- idx[[i]] + 1L
             fin <- bornes[[i + 1L]] - 1L
             contenu <- if (debut <= fin) lignes[debut:fin] else character(0)
             contenu <- trimws(contenu)
             contenu <- contenu[nzchar(contenu)]
             if (length(contenu) == 0) next
+
             textes <- c(textes, paste(contenu, collapse = " "))
             ids <- c(ids, paste0("doc_", i))
+            etoiles_par_doc[[length(etoiles_par_doc) + 1L]] <- tokens_entete
           }
         } else {
           lignes2 <- trimws(lignes)
@@ -63,14 +70,41 @@ register_events_lancer <- function(input, output, session, rv) {
           if (length(lignes2) == 0) stop("Corpus vide : aucune ligne non vide.")
           textes <- lignes2
           ids <- paste0("doc_", seq_along(textes))
+          etoiles_par_doc <- rep(list(character(0)), length(textes))
         }
 
         if (length(textes) == 0) stop("Corpus vide : aucune unité de texte détectée.")
 
-        quanteda::corpus(
-          data.frame(doc_id = ids, text = textes, stringsAsFactors = FALSE),
-          text_field = "text"
-        )
+        base_df <- data.frame(doc_id = ids, text = textes, stringsAsFactors = FALSE)
+
+        noms_etoiles <- unique(unlist(lapply(etoiles_par_doc, function(tok) {
+          tok <- tok[!is.na(tok) & nzchar(tok)]
+          if (length(tok) == 0) return(character(0))
+          sous <- sub("^\\*", "", tok)
+          sous <- sub("_.*$", "", sous)
+          sous <- sous[nzchar(sous)]
+          paste0("*", sous)
+        }), use.names = FALSE))
+
+        if (length(noms_etoiles) > 0) {
+          for (cn in noms_etoiles) base_df[[cn]] <- NA_character_
+          for (i in seq_along(etoiles_par_doc)) {
+            toks <- etoiles_par_doc[[i]]
+            if (length(toks) == 0) next
+            for (tk in toks) {
+              corps <- sub("^\\*", "", tk)
+              if (!nzchar(corps)) next
+              var <- sub("_.*$", "", corps)
+              val <- sub("^[^_]*_?", "", corps)
+              if (!nzchar(var)) next
+              if (!nzchar(val) || identical(val, var)) val <- "1"
+              cn <- paste0("*", var)
+              if (cn %in% names(base_df)) base_df[i, cn] <- val
+            }
+          }
+        }
+
+        quanteda::corpus(base_df, text_field = "text")
       }
     }
 
