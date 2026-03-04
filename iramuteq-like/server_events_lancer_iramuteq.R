@@ -187,6 +187,13 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
+
+    calculer_min_docfreq_iramuteq <- function(n_segments) {
+      n_segments <- suppressWarnings(as.integer(n_segments))
+      if (!is.finite(n_segments) || is.na(n_segments) || n_segments < 1L) return(1L)
+      as.integer(max(1L, floor(sqrt(n_segments))))
+    }
+
     executer_pipeline_iramuteq <- function(input, rv, textes_chd) {
       if (is.null(textes_chd)) {
         stop("IRaMuTeQ-like: textes_chd manquant pour la préparation du pipeline.")
@@ -216,6 +223,12 @@ register_events_lancer <- function(input, output, session, rv) {
 
       dfm_obj <- quanteda::dfm(tok)
       quanteda::docnames(dfm_obj) <- ids_docs
+
+      min_docfreq_auto <- calculer_min_docfreq_iramuteq(quanteda::ndoc(dfm_obj))
+      rv$min_docfreq_auto <- min_docfreq_auto
+      ajouter_log(rv, paste0("min_docfreq automatique (IRaMuTeQ-like) = ", min_docfreq_auto, " pour ", quanteda::ndoc(dfm_obj), " segments."))
+
+      dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_auto)
 
       list(
         tok = tok,
@@ -535,6 +548,7 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Segmentation..."
           segment_size <- input$segment_size
           corpus <- split_segments(corpus, segment_size = segment_size)
+          rv$min_docfreq_auto <- calculer_min_docfreq_iramuteq(ndoc(corpus))
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
           stats_corpus <- calculer_stats_corpus(
