@@ -163,18 +163,24 @@ register_events_lancer <- function(input, output, session, rv) {
       calculer_stats_corpus <- function(chemin_fichier,
                                         corpus_segments,
                                         nom_corpus = NULL,
+                                        tokens_stats = NULL,
                                         remove_punct = FALSE,
                                         remove_numbers = FALSE) {
         lignes <- tryCatch(readLines(chemin_fichier, encoding = "UTF-8", warn = FALSE), error = function(e) character(0))
-        tokens_obj <- quanteda::tokens(
-          corpus_segments,
-          remove_punct = isTRUE(remove_punct),
-          remove_numbers = isTRUE(remove_numbers),
-          remove_symbols = TRUE,
-          remove_separators = TRUE,
-          split_hyphens = FALSE
-        )
-        tokens <- unlist(tokens_obj, use.names = FALSE)
+        if (!is.null(tokens_stats)) {
+          tokens <- unlist(tokens_stats, use.names = FALSE)
+        } else {
+          tokens_obj <- quanteda::tokens(
+            corpus_segments,
+            remove_punct = isTRUE(remove_punct),
+            remove_numbers = isTRUE(remove_numbers),
+            remove_symbols = TRUE,
+            remove_separators = TRUE,
+            split_hyphens = FALSE
+          )
+          tokens <- unlist(tokens_obj, use.names = FALSE)
+        }
+        tokens <- tolower(as.character(tokens))
         tokens <- tokens[nzchar(tokens)]
 
         n_tokens <- length(tokens)
@@ -655,21 +661,6 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$min_docfreq_auto <- calculer_min_docfreq_iramuteq(ndoc(corpus))
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
-          stats_corpus <- calculer_stats_corpus(
-            chemin_fichier = chemin_fichier,
-            corpus_segments = corpus,
-            nom_corpus = input$fichier_corpus$name,
-            remove_punct = isTRUE(input$supprimer_ponctuation),
-            remove_numbers = isTRUE(input$supprimer_chiffres)
-          )
-          if (is.null(stats_corpus)) {
-            rv$stats_corpus_df <- NULL
-            rv$stats_zipf_df <- NULL
-          } else {
-            rv$stats_corpus_df <- stats_corpus$table
-            rv$stats_zipf_df <- stats_corpus$zipf
-          }
-
           ids_orig <- as.character(docnames(corpus))
           ids_corpus <- ids_orig
           invalides <- is.na(ids_corpus) | !nzchar(trimws(ids_corpus))
@@ -736,6 +727,22 @@ register_events_lancer <- function(input, output, session, rv) {
           dfm_obj <- sortie_pipeline$dfm_obj
           langue_reference <- sortie_pipeline$langue_reference
           source_dictionnaire <- sortie_pipeline$source_dictionnaire
+
+          stats_corpus <- calculer_stats_corpus(
+            chemin_fichier = chemin_fichier,
+            corpus_segments = corpus,
+            nom_corpus = input$fichier_corpus$name,
+            tokens_stats = tok,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres)
+          )
+          if (is.null(stats_corpus)) {
+            rv$stats_corpus_df <- NULL
+            rv$stats_zipf_df <- NULL
+          } else {
+            rv$stats_corpus_df <- stats_corpus$table
+            rv$stats_zipf_df <- stats_corpus$zipf
+          }
 
           if (anyDuplicated(docnames(dfm_obj)) > 0) {
             dups_dfm <- sum(duplicated(as.character(docnames(dfm_obj))))
