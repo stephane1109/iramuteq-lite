@@ -45,6 +45,7 @@ if (file.exists("help.md")) {
 
 source("iramuteq-like/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteq-like/afc_helpers_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/affichage_iramuteq-like.R", encoding = "UTF-8", local = TRUE)
