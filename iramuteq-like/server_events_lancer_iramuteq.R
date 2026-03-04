@@ -123,6 +123,8 @@ register_events_lancer <- function(input, output, session, rv) {
         out_text <- character(0)
         out_id <- character(0)
         out_src <- character(0)
+        out_docvars <- list()
+        dv_in <- tryCatch(quanteda::docvars(corpus), error = function(e) NULL)
 
         for (i in seq_along(docs)) {
           tok_doc <- quanteda::tokens(
@@ -145,6 +147,11 @@ register_events_lancer <- function(input, output, session, rv) {
             out_text <- c(out_text, seg)
             out_id <- c(out_id, paste0(dn[[i]], "_seg", j))
             out_src <- c(out_src, dn[[i]])
+            if (!is.null(dv_in) && nrow(dv_in) >= i) {
+              out_docvars[[length(out_docvars) + 1L]] <- dv_in[i, , drop = FALSE]
+            } else {
+              out_docvars[[length(out_docvars) + 1L]] <- NULL
+            }
           }
         }
 
@@ -155,6 +162,19 @@ register_events_lancer <- function(input, output, session, rv) {
           text_field = "text"
         )
         quanteda::docvars(corp, "segment_source") <- out_src
+
+        if (length(out_docvars) > 0 && any(vapply(out_docvars, Negate(is.null), logical(1)))) {
+          idx_valid <- which(vapply(out_docvars, Negate(is.null), logical(1)))
+          dv_seg <- do.call(rbind, out_docvars[idx_valid])
+          if (!is.null(dv_seg) && nrow(dv_seg) == length(idx_valid)) {
+            cn_copy <- setdiff(colnames(dv_seg), "segment_source")
+            for (cn in cn_copy) {
+              vals <- rep(NA, quanteda::ndoc(corp))
+              vals[idx_valid] <- dv_seg[[cn]]
+              quanteda::docvars(corp, cn) <- vals
+            }
+          }
+        }
         corp
       }
     }
