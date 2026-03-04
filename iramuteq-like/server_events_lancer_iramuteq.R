@@ -187,29 +187,6 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
-    if (!exists("assurer_docvars_dfm_minimal", mode = "function", inherits = TRUE)) {
-      assurer_docvars_dfm_minimal <- function(dfm_obj, corpus_ref = NULL) {
-        if (is.null(dfm_obj) || quanteda::ndoc(dfm_obj) == 0) return(dfm_obj)
-
-        docs <- as.character(quanteda::docnames(dfm_obj))
-        if (!length(docs)) docs <- paste0("doc_", seq_len(quanteda::ndoc(dfm_obj)))
-
-        segment_source <- docs
-        if (!is.null(corpus_ref) && quanteda::ndoc(corpus_ref) > 0) {
-          dv_ref <- tryCatch(quanteda::docvars(corpus_ref), error = function(e) NULL)
-          if (!is.null(dv_ref) && "segment_source" %in% names(dv_ref)) {
-            idx <- match(docs, as.character(quanteda::docnames(corpus_ref)))
-            ss <- as.character(dv_ref$segment_source[idx])
-            ok <- !is.na(ss) & nzchar(trimws(ss))
-            segment_source[ok] <- ss[ok]
-          }
-        }
-
-        quanteda::docvars(dfm_obj, "segment_source") <- segment_source
-        dfm_obj
-      }
-    }
-
     executer_pipeline_iramuteq <- function(input, rv, textes_chd) {
       if (is.null(textes_chd)) {
         stop("IRaMuTeQ-like: textes_chd manquant pour la préparation du pipeline.")
@@ -664,12 +641,30 @@ register_events_lancer <- function(input, output, session, rv) {
             ajouter_log(rv, paste0("Tokens : docnames dupliqués détectés (", dups_tok, "). Renommage automatique."))
           }
 
-          dfm_obj <- assurer_docvars_dfm_minimal(dfm_obj, filtered_corpus)
+          segment_source <- as.character(docnames(dfm_obj))
+          if ("segment_source" %in% names(docvars(filtered_corpus))) {
+            ss <- as.character(docvars(filtered_corpus)$segment_source)
+            idx_ss <- match(as.character(docnames(dfm_obj)), as.character(docnames(filtered_corpus)))
+            ss_aligne <- ss[idx_ss]
+            ok_ss <- !is.na(ss_aligne) & nzchar(trimws(ss_aligne))
+            segment_source[ok_ss] <- ss_aligne[ok_ss]
+          }
+          docvars(dfm_obj, "segment_source") <- segment_source
 
-          tmp <- supprimer_docs_vides_dfm(dfm_obj, filtered_corpus, tok, rv)
-          dfm_obj <- tmp$dfm
-          filtered_corpus <- tmp$corpus
-          tok <- tmp$tok
+          sommes_docs <- Matrix::rowSums(dfm_obj)
+          idx_non_vides <- !is.na(sommes_docs) & (sommes_docs > 0)
+          if (!any(idx_non_vides)) {
+            stop("Le DFM ne contient aucun segment non vide après prétraitement.")
+          }
+
+          nb_vides <- sum(!idx_non_vides)
+          if (nb_vides > 0) {
+            ajouter_log(rv, paste0("Segments vides supprimés du DFM : ", nb_vides, "."))
+          }
+
+          dfm_obj <- dfm_obj[idx_non_vides, ]
+          filtered_corpus <- filtered_corpus[idx_non_vides]
+          tok <- tok[idx_non_vides]
 
           ajouter_log(rv, paste0("Après suppression segments vides : ", ndoc(dfm_obj), " docs ; ", nfeat(dfm_obj), " termes."))
 
@@ -1020,15 +1015,7 @@ register_events_lancer <- function(input, output, session, rv) {
 
             }
 
-            generer_cooccurrences_par_classe(
-              tok_ok = tok_ok,
-              filtered_corpus_ok = filtered_corpus_ok,
-              classes_uniques = classes_uniques,
-              cooc_dir = cooc_dir,
-              top_n = input$top_n,
-              top_feat = input$top_feat,
-              window_cooc = input$window_cooc
-            )
+            # Cooccurrences Explor retirées du pipeline IRaMuTeQ-like.
           } else {
             generer_wordclouds_iramuteq(
               res_stats_df = res_stats_df,
@@ -1045,10 +1032,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ok_chd_png <- FALSE
 
           chd_png_rel <- NULL
-          if (isTRUE(ok_chd_png) && file.exists(file.path(rv$export_dir, "explor", "chd.png"))) {
-            chd_png_rel <- file.path("explor", "chd.png")
-          }
-          chd_html_rel <- generer_chd_html_explor(rv, chd_png_rel)
+          chd_html_rel <- NULL
 
           wc_files <- list.files(wordcloud_dir, pattern = "\\.png$", full.names = FALSE)
           if (length(wc_files) > 0) {
@@ -1063,7 +1047,7 @@ register_events_lancer <- function(input, output, session, rv) {
             wordclouds_df <- data.frame(classe = character(0), src = character(0), stringsAsFactors = FALSE)
           }
 
-          coocs_df <- construire_table_cooccurrences(cooc_dir)
+          coocs_df <- data.frame(classe = character(0), src = character(0), stringsAsFactors = FALSE)
 
           explor_assets <- list(
             chd = chd_png_rel,
