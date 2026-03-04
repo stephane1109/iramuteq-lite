@@ -813,8 +813,15 @@ register_events_lancer <- function(input, output, session, rv) {
             classif_mode = classif_mode_iramuteq,
             svd_method = svd_method_iramuteq,
             mode_patate = isTRUE(input$iramuteq_mode_patate),
-            binariser = FALSE
+            binariser = TRUE
           )
+
+          if (isTRUE(res_ira$fallback_mincl1)) {
+            ajouter_log(
+              rv,
+              "Ajustement automatique: reconstruction des classes avec mincl=1 pour éviter une fusion excessive des classes terminales."
+            )
+          }
 
           groupes <- as.integer(res_ira$classes)
           if (all(is.na(groupes)) || length(unique(groupes[groupes > 0])) < 2) {
