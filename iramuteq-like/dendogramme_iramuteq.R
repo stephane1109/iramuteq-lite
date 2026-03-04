@@ -1,8 +1,22 @@
 # Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-like.
 
+.extraire_classes_dendrogramme <- function(rv) {
+  if (!is.null(rv$res$classes)) return(rv$res$classes)
+
+  if (!is.null(rv$filtered_corpus) &&
+      exists("docvars", mode = "function", inherits = TRUE)) {
+    dv <- tryCatch(docvars(rv$filtered_corpus), error = function(e) NULL)
+    if (!is.null(dv) && "Classes" %in% names(dv)) return(dv$Classes)
+  }
+
+  NULL
+}
+
 tracer_dendogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 4,
                                             orientation = "vertical") {
+  orientation <- match.arg(orientation, c("vertical", "horizontal"))
+
   if (is.null(rv$res) && is.null(rv$res_chd)) {
     plot.new()
     text(0.5, 0.5, "Dendrogramme CHD indisponible.", cex = 1.1)
@@ -19,14 +33,17 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
   }
 
   terminales <- if (!is.null(rv$res$terminales)) rv$res$terminales else NULL
-  classes <- if (!is.null(rv$res$classes)) rv$res$classes else NULL
-  if (is.null(classes) && !is.null(rv$filtered_corpus) && "Classes" %in% names(docvars(rv$filtered_corpus))) {
-    classes <- docvars(rv$filtered_corpus)$Classes
-  }
+  classes <- .extraire_classes_dendrogramme(rv)
 
   if (is.null(chd_obj)) {
     plot.new()
     text(0.5, 0.5, "Dendrogramme CHD indisponible (objet CHD introuvable).", cex = 1.1)
+    return(invisible(NULL))
+  }
+
+  if (!exists("tracer_dendrogramme_chd_iramuteq", mode = "function", inherits = TRUE)) {
+    plot.new()
+    text(0.5, 0.5, "Dendrogramme CHD indisponible (moteur de tracé introuvable).", cex = 1.1)
     return(invisible(NULL))
   }
 
