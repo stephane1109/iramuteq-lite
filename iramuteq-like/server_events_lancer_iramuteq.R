@@ -205,8 +205,18 @@ register_events_lancer <- function(input, output, session, rv) {
         ids_docs <- paste0("doc_", seq_along(textes_chr))
       }
 
+      textes_tok <- textes_chr
+      if (isTRUE(input$retirer_stopwords)) {
+        textes_tok <- gsub(
+          pattern = "(?i)\\b(?:[cdjlmnst]|qu)['’`´ʼʹ](?=[[:alpha:]])",
+          replacement = "",
+          x = textes_tok,
+          perl = TRUE
+        )
+      }
+
       tok <- quanteda::tokens(
-        textes_chr,
+        textes_tok,
         remove_punct = isTRUE(input$supprimer_ponctuation),
         remove_numbers = isTRUE(input$supprimer_chiffres)
       )
@@ -215,7 +225,10 @@ register_events_lancer <- function(input, output, session, rv) {
 
       if (isTRUE(input$retirer_stopwords)) {
         stop_fr <- quanteda::stopwords("fr")
+        n_feat_avant_stop <- quanteda::nfeat(quanteda::dfm(tok))
         tok <- quanteda::tokens_remove(tok, pattern = stop_fr, valuetype = "fixed", case_insensitive = TRUE)
+        n_feat_apres_stop <- quanteda::nfeat(quanteda::dfm(tok))
+        ajouter_log(rv, paste0("Filtrage stopwords quanteda(fr) appliqué : ", n_feat_avant_stop, " -> ", n_feat_apres_stop, " termes uniques."))
       }
 
       if (isTRUE(input$filtrage_morpho)) {
