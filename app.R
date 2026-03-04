@@ -317,16 +317,20 @@ server <- function(input, output, session) {
   })
 
   output$table_classes <- renderTable({
-    if (is.null(rv$res_stats_df) || !is.data.frame(rv$res_stats_df) || nrow(rv$res_stats_df) == 0) {
-      return(data.frame(Message = "Aucune classe disponible (analyse non lancée ou résultats vides).", stringsAsFactors = FALSE))
+    classes <- integer(0)
+
+    if (!is.null(rv$filtered_corpus) && quanteda::ndoc(rv$filtered_corpus) > 0) {
+      classes_docs <- quanteda::docvars(rv$filtered_corpus, "Classes")
+      classes <- suppressWarnings(as.integer(classes_docs))
     }
 
-    col_classe <- intersect(c("Classe", "classe", "cluster", "Class"), names(rv$res_stats_df))
-    if (length(col_classe) == 0) {
-      return(data.frame(Message = "Colonne de classe introuvable dans les résultats CHD.", stringsAsFactors = FALSE))
+    if (!length(classes) && !is.null(rv$res_stats_df) && is.data.frame(rv$res_stats_df) && nrow(rv$res_stats_df) > 0) {
+      col_classe <- intersect(c("Classe", "classe", "cluster", "Class"), names(rv$res_stats_df))
+      if (length(col_classe) > 0) {
+        classes <- suppressWarnings(as.integer(rv$res_stats_df[[col_classe[[1]]]]))
+      }
     }
 
-    classes <- suppressWarnings(as.integer(rv$res_stats_df[[col_classe[[1]]]]))
     classes <- classes[is.finite(classes) & classes > 0]
     if (!length(classes)) {
       return(data.frame(Message = "Aucune classe valide détectée.", stringsAsFactors = FALSE))
