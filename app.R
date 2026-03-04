@@ -104,7 +104,8 @@ server <- function(input, output, session) {
 
     explor_assets = NULL,
     stats_corpus_df = NULL,
-    stats_zipf_df = NULL
+    stats_zipf_df = NULL,
+    min_docfreq_auto = 1L
   )
 
   if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
@@ -113,6 +114,15 @@ server <- function(input, output, session) {
     output$statut <- renderText({ rv$statut })
     output$logs <- renderText({ rv$logs })
   }
+
+
+  output$min_docfreq_auto <- renderText({
+    valeur <- suppressWarnings(as.integer(rv$min_docfreq_auto))
+    if (!is.finite(valeur) || is.na(valeur) || valeur < 1L) {
+      return("Automatique (calcul IRaMuTeQ-like en attente d'un corpus)")
+    }
+    paste0(valeur, " (calcul automatique IRaMuTeQ-like)")
+  })
 
   output$ui_afc_statut <- renderUI({
     if (!is.null(rv$afc_erreur) && nzchar(rv$afc_erreur)) {
