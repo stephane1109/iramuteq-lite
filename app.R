@@ -391,7 +391,7 @@ server <- function(input, output, session) {
           classe = cl,
           n_max = NULL,
           show_negative = FALSE,
-          max_p = if (isTRUE(input$filtrer_affichage_pvalue)) input$max_p else 1,
+          max_p = 1,
           seuil_p_significativite = input$max_p,
           style = "iramuteq_clone"
         )
