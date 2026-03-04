@@ -1,6 +1,4 @@
 # Rôle du fichier: afc_helpers.R porte une partie du pipeline d'analyse Rainette.
-# Ce script centralise une responsabilité métier/technique utilisée par l'application.
-# Il facilite la maintenance en explicitant le périmètre et les points d'intégration.
 # Module AFC - helpers de contextualisation des termes
 # Ce fichier regroupe des utilitaires AFC, notamment la construction de segments
 # exemples associés aux termes caractéristiques de classes.
