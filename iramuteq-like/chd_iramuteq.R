@@ -414,12 +414,6 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
                                               orientation = c("vertical", "horizontal")) {
   orientation <- match.arg(orientation)
 
-  if (!requireNamespace("ape", quietly = TRUE)) {
-    plot.new()
-    text(0.5, 0.5, "Dendrogramme indisponible : package 'ape' requis.", cex = 1.1)
-    return(invisible(NULL))
-  }
-
   n1 <- .normaliser_n1_chd(chd_obj$n1)
   list_fille <- chd_obj$list_fille
   if (is.null(n1) || !is.list(list_fille) || !length(list_fille)) {
@@ -469,38 +463,19 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
   edges_df <- unique(as.data.frame(edges_df))
   all_nodes <- sort(unique(c(edges_df$parent, edges_df$child)))
   parent_nodes <- sort(unique(edges_df$parent))
-  tip_nodes <- setdiff(all_nodes, parent_nodes)
+  detected_tips <- setdiff(all_nodes, parent_nodes)
 
-  if (length(terminales)) {
-    term_tips <- terminales[terminales %in% tip_nodes]
-    if (length(term_tips)) tip_nodes <- unique(term_tips)
-  }
-
-  if (!length(tip_nodes)) {
+  if (!length(detected_tips)) {
     plot.new()
     text(0.5, 0.5, "Aucune classe terminale exploitable.", cex = 1.1)
     return(invisible(NULL))
   }
 
-  internal_nodes <- setdiff(all_nodes, tip_nodes)
-  idx_tip <- stats::setNames(seq_along(tip_nodes), as.character(tip_nodes))
-  idx_internal <- stats::setNames(length(tip_nodes) + seq_along(internal_nodes), as.character(internal_nodes))
-  idx_all <- c(idx_tip, idx_internal)
-
-  edge_keep <- edges_df$parent %in% names(idx_all) & edges_df$child %in% names(idx_all)
-  edges_df <- edges_df[edge_keep, , drop = FALSE]
-  if (!nrow(edges_df)) {
-    plot.new()
-    text(0.5, 0.5, "Dendrogramme CHD indisponible (structure invalide).", cex = 1.1)
-    return(invisible(NULL))
+  tip_nodes <- detected_tips
+  if (length(terminales)) {
+    term_tips <- terminales[terminales %in% detected_tips]
+    if (length(term_tips)) tip_nodes <- unique(term_tips)
   }
-
-  edge <- cbind(
-    parent = unname(idx_all[as.character(edges_df$parent)]),
-    child = unname(idx_all[as.character(edges_df$child)])
-  )
-
-  Nnode <- max(1L, length(internal_nodes))
 
   class_by_tip <- stats::setNames(rep(NA_integer_, length(tip_nodes)), as.character(tip_nodes))
   if (length(terminales)) {
@@ -510,7 +485,6 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       if (node %in% names(class_by_tip)) class_by_tip[[node]] <- class_ids[[i]]
     }
   }
-
   fallback <- which(!is.finite(class_by_tip))
   if (length(fallback)) class_by_tip[fallback] <- seq_along(fallback)
 
@@ -554,30 +528,124 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     }
   }, FUN.VALUE = character(1))
 
-  phy <- list(
-    edge = edge,
-    tip.label = unname(tip_label),
-    Nnode = Nnode,
-    root.edge = 1
-  )
-  class(phy) <- "phylo"
-  phy <- ape::reorder.phylo(phy, order = "cladewise", index.only = FALSE)
+  children_map <- split(edges_df$child, edges_df$parent)
+  children_map <- lapply(children_map, function(x) as.integer(unique(x)))
+  roots <- setdiff(parent_nodes, edges_df$child)
+  if (!length(roots)) roots <- parent_nodes[1]
+
+  assign_leaf_x <- function(node, state) {
+    node_key <- as.character(node)
+    kids <- children_map[[node_key]]
+    kids <- kids[is.finite(kids)]
+
+    if (!length(kids) || !(node %in% parent_nodes)) {
+      if (!(node %in% tip_nodes)) return(state)
+      state$x[[node_key]] <- state$next_x
+      state$next_x <- state$next_x + 1
+      return(state)
+    }
+
+    for (kid in kids) state <- assign_leaf_x(kid, state)
+    kid_keys <- as.character(kids)
+    kid_x <- unname(unlist(state$x[kid_keys]))
+    kid_x <- kid_x[is.finite(kid_x)]
+    if (length(kid_x)) state$x[[node_key]] <- mean(kid_x)
+    state
+  }
+
+  state <- list(x = list(), next_x = 1)
+  for (rt in roots) state <- assign_leaf_x(rt, state)
+  x_pos <- state$x
+
+  y_pos <- list()
+  assign_depth <- function(node, depth = 0L) {
+    node_key <- as.character(node)
+    if (!is.null(y_pos[[node_key]]) && y_pos[[node_key]] <= depth) return(invisible(NULL))
+    y_pos[[node_key]] <<- depth
+    kids <- children_map[[node_key]]
+    kids <- kids[is.finite(kids)]
+    for (kid in kids) assign_depth(kid, depth + 1L)
+    invisible(NULL)
+  }
+  for (rt in roots) assign_depth(rt, 0L)
+
+  all_y <- unname(unlist(y_pos))
+  max_depth <- if (length(all_y)) max(all_y, na.rm = TRUE) else 1
+  if (!is.finite(max_depth) || max_depth <= 0) max_depth <- 1
+
+  node_keys <- names(y_pos)
+  x_vals <- vapply(node_keys, function(k) as.numeric(x_pos[[k]]), numeric(1))
+  y_vals <- vapply(node_keys, function(k) as.numeric(y_pos[[k]]), numeric(1))
+  keep_nodes <- is.finite(x_vals) & is.finite(y_vals)
+  node_keys <- node_keys[keep_nodes]
+  x_vals <- x_vals[keep_nodes]
+  y_vals <- y_vals[keep_nodes]
+
+  if (!length(node_keys)) {
+    plot.new()
+    text(0.5, 0.5, "Dendrogramme CHD indisponible (coordonnées invalides).", cex = 1.1)
+    return(invisible(NULL))
+  }
+
+  node_xy <- stats::setNames(vector("list", length(node_keys)), node_keys)
+  for (i in seq_along(node_keys)) {
+    node_xy[[node_keys[[i]]]] <- c(x = x_vals[[i]], y = y_vals[[i]])
+  }
 
   op <- par(no.readonly = TRUE)
   on.exit(par(op), add = TRUE)
-  par(mar = c(2, 1, 3, 1))
 
-  dir <- if (identical(orientation, "vertical")) "downwards" else "rightwards"
-  ape::plot.phylo(
-    phy,
-    type = "cladogram",
-    use.edge.length = FALSE,
-    direction = dir,
-    cex = 0.75,
-    no.margin = TRUE,
-    label.offset = 0.02,
-    main = "Dendrogramme CHD (package ape)"
-  )
+  if (identical(orientation, "vertical")) {
+    par(mar = c(2, 1, 3, 1))
+    plot(0, 0,
+      type = "n",
+      xlim = c(min(x_vals) - 0.5, max(x_vals) + 0.5),
+      ylim = c(max_depth + 0.8, -0.5),
+      axes = FALSE,
+      xlab = "", ylab = "",
+      main = "Dendrogramme CHD"
+    )
+
+    for (i in seq_len(nrow(edges_df))) {
+      p_key <- as.character(edges_df$parent[[i]])
+      c_key <- as.character(edges_df$child[[i]])
+      p_xy <- node_xy[[p_key]]
+      c_xy <- node_xy[[c_key]]
+      if (is.null(p_xy) || is.null(c_xy)) next
+      segments(p_xy[["x"]], p_xy[["y"]], c_xy[["x"]], c_xy[["y"]], xpd = TRUE)
+    }
+
+    for (tip in names(class_by_tip)) {
+      xy <- node_xy[[tip]]
+      if (is.null(xy)) next
+      text(xy[["x"]], xy[["y"]] + 0.2, labels = tip_label[[tip]], cex = 0.75, pos = 1, xpd = TRUE)
+    }
+  } else {
+    par(mar = c(1, 2, 3, 2))
+    plot(0, 0,
+      type = "n",
+      xlim = c(-0.5, max_depth + 0.8),
+      ylim = c(min(x_vals) - 0.5, max(x_vals) + 0.5),
+      axes = FALSE,
+      xlab = "", ylab = "",
+      main = "Dendrogramme CHD"
+    )
+
+    for (i in seq_len(nrow(edges_df))) {
+      p_key <- as.character(edges_df$parent[[i]])
+      c_key <- as.character(edges_df$child[[i]])
+      p_xy <- node_xy[[p_key]]
+      c_xy <- node_xy[[c_key]]
+      if (is.null(p_xy) || is.null(c_xy)) next
+      segments(p_xy[["y"]], p_xy[["x"]], c_xy[["y"]], c_xy[["x"]], xpd = TRUE)
+    }
+
+    for (tip in names(class_by_tip)) {
+      xy <- node_xy[[tip]]
+      if (is.null(xy)) next
+      text(xy[["y"]] + 0.15, xy[["x"]], labels = tip_label[[tip]], cex = 0.75, pos = 4, xpd = TRUE)
+    }
+  }
 
   invisible(NULL)
 }
