@@ -114,12 +114,12 @@ ui <- fluidPage(
 
       tags$div(class = "sidebar-section-title", "Paramètres généraux CHD"),
       numericInput("segment_size", "segment_size", value = 40, min = 5, step = 1),
-      tags$div(
-        tags$label("Fréquence minimale des termes (min_docfreq)"),
-        tags$div(
-          style = "padding: 6px 8px; background: #f5f7fb; border: 1px solid #d7dfef; border-radius: 4px;",
-          textOutput("min_docfreq_auto", inline = TRUE)
-        )
+      numericInput(
+        "min_docfreq",
+        "Fréquence minimale des termes (min_docfreq)",
+        value = 2,
+        min = 1,
+        step = 1
       ),
       numericInput("max_p", "max_p (p-value)", value = 0.05, min = 0, max = 1, step = 0.01),
       checkboxInput(

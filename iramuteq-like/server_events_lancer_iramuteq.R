@@ -264,12 +264,6 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
 
-    calculer_min_docfreq_iramuteq <- function(n_segments) {
-      n_segments <- suppressWarnings(as.integer(n_segments))
-      if (!is.finite(n_segments) || is.na(n_segments) || n_segments < 1L) return(1L)
-      as.integer(max(1L, floor(sqrt(n_segments))))
-    }
-
     lire_top_n_wordcloud <- function(input_top_n, valeur_defaut = 20L, min_value = 5L) {
       top_n <- suppressWarnings(as.integer(input_top_n))
       if (length(top_n) != 1L || is.na(top_n) || !is.finite(top_n)) {
@@ -322,11 +316,14 @@ register_events_lancer <- function(input, output, session, rv) {
       dfm_obj <- quanteda::dfm(tok)
       quanteda::docnames(dfm_obj) <- ids_docs
 
-      min_docfreq_auto <- calculer_min_docfreq_iramuteq(quanteda::ndoc(dfm_obj))
-      rv$min_docfreq_auto <- min_docfreq_auto
-      ajouter_log(rv, paste0("min_docfreq automatique (IRaMuTeQ-like) = ", min_docfreq_auto, " pour ", quanteda::ndoc(dfm_obj), " segments."))
+      min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
+      if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
+        min_docfreq_val <- 1L
+      }
+      rv$min_docfreq_applique <- min_docfreq_val
+      ajouter_log(rv, paste0("min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_val, " (manuel)."))
 
-      dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_auto)
+      dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_val)
 
       list(
         tok = tok,
@@ -672,7 +669,11 @@ register_events_lancer <- function(input, output, session, rv) {
             remove_punct = isTRUE(input$supprimer_ponctuation),
             remove_numbers = isTRUE(input$supprimer_chiffres)
           )
-          rv$min_docfreq_auto <- calculer_min_docfreq_iramuteq(ndoc(corpus))
+          min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
+          if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
+            min_docfreq_val <- 1L
+          }
+          rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
           stats_corpus <- calculer_stats_corpus(
