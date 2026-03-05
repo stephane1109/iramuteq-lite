@@ -125,6 +125,10 @@ ui <- fluidPage(
           width = "100%"
         ),
         tags$div(
+          style = "color: #b00020; font-weight: 600; margin: 4px 0 6px 0;",
+          "Dans le logiciel iramuteq il semble que la valeur auto soit \"2\""
+        ),
+        tags$div(
           style = "padding: 6px 8px; background: #f5f7fb; border: 1px solid #d7dfef; border-radius: 4px;",
           textOutput("min_docfreq_auto", inline = TRUE)
         )
