@@ -49,6 +49,31 @@ generer_table_html_afc_mots <- function(df) {
   if (is.null(df) || nrow(df) == 0) {
     return(tags$p("Aucun mot disponible pour cette classe."))
   }
+
+  surligner_segment_afc <- function(segment, terme) {
+    segment <- ifelse(is.na(segment), "", as.character(segment))
+    terme <- ifelse(is.na(terme), "", as.character(terme))
+    if (!nzchar(trimws(segment)) || !nzchar(trimws(terme))) {
+      return(htmltools::htmlEscape(segment))
+    }
+
+    motifs <- preparer_motifs_surlignage_nfd(terme, taille_lot = 1)
+    if (!length(motifs)) return(htmltools::htmlEscape(segment))
+
+    segment_hl <- surligner_vecteur_html_unicode(
+      segment,
+      motifs,
+      "<span style='background-color: yellow;'>",
+      "</span>"
+    )
+
+    echapper_segments_en_preservant_surlignage(
+      segment_hl,
+      "<span style='background-color: yellow;'>",
+      "</span>"
+    )
+  }
+
   htmltools::div(
     style = "max-height: 420px; overflow-y: auto;",
     tags$table(
@@ -58,8 +83,16 @@ generer_table_html_afc_mots <- function(df) {
       ),
       tags$tbody(
         lapply(seq_len(nrow(df)), function(i) {
+          terme_ligne <- if ("Terme" %in% names(df)) df$Terme[[i]] else ""
           tags$tr(
-            lapply(df[i, , drop = FALSE], function(val) tags$td(style = "padding:6px; border-bottom:1px solid #f0f0f0; vertical-align: top;", ifelse(is.na(val), "", as.character(val))))
+            lapply(names(df), function(col) {
+              val <- df[[col]][[i]]
+              contenu <- ifelse(is.na(val), "", as.character(val))
+              if (identical(col, "Segment_texte")) {
+                contenu <- htmltools::HTML(surligner_segment_afc(contenu, terme_ligne))
+              }
+              tags$td(style = "padding:6px; border-bottom:1px solid #f0f0f0; vertical-align: top;", contenu)
+            })
           )
         })
       )

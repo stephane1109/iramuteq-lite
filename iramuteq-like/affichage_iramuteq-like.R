@@ -18,7 +18,10 @@ ui_resultats_chd_iramuteq <- function() {
       tabPanel(
         "Concordancier IRaMuTeQ-like",
         tags$h3("Concordancier"),
-        uiOutput("ui_concordancier_iramuteq")
+        uiOutput("ui_concordancier_iramuteq"),
+        tags$hr(),
+        tags$h4("Concordancier AFC (mots et segments)", style = "margin-top: 18px;"),
+        uiOutput("ui_table_afc_mots_par_classe")
       ),
       tabPanel(
         "Nuage de mots",
