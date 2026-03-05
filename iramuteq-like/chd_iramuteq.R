@@ -445,7 +445,8 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     classes_obs <- classes_obs[is.finite(classes_obs) & classes_obs > 0]
     pct_par_classe <- if (length(classes_obs)) prop.table(table(classes_obs)) * 100 else NULL
 
-    top_n_terms <- 10L
+    top_n_terms <- suppressWarnings(as.integer(top_n_terms))
+    if (!is.finite(top_n_terms) || is.na(top_n_terms) || top_n_terms < 1L) top_n_terms <- 1L
 
     termes_chi2 <- vector("list", nrow(mat))
     if ("chi2" %in% names(df)) {
@@ -466,24 +467,24 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       }
     }
 
-    labels <- vapply(seq_len(nrow(mat)), function(i) {
+    class_labels <- vapply(seq_len(nrow(mat)), function(i) {
       cl <- as.integer(rownames(mat)[[i]])
       pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
       pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
+      paste0("Classe ", cl, pct_txt)
+    }, FUN.VALUE = character(1))
 
+    termes_affiches <- lapply(seq_len(nrow(mat)), function(i) {
       termes <- termes_chi2[[i]]
       if (!length(termes)) {
         ligne <- mat[i, , drop = TRUE]
         termes <- names(sort(ligne, decreasing = TRUE))
         termes <- termes[is.finite(ligne[termes]) & ligne[termes] > 0]
-        termes <- utils::head(termes, top_n_terms)
       }
+      utils::head(termes, top_n_terms)
+    })
 
-      if (!length(termes)) return(paste0("Classe ", cl, pct_txt))
-      paste0("Classe ", cl, pct_txt, "\n", paste(termes, collapse = ", "))
-    }, FUN.VALUE = character(1))
-
-    hc$labels <- labels
+    hc$labels <- class_labels
 
     classes_hc <- suppressWarnings(as.integer(rownames(mat)))
     classes_hc[!is.finite(classes_hc)] <- seq_along(classes_hc)
@@ -495,7 +496,19 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
 
     op <- par(no.readonly = TRUE)
     on.exit(par(op), add = TRUE)
-    par(bg = "black", fg = "white", col.axis = "white", col.lab = "white")
+    par(bg = "white", fg = "black", col.axis = "black", col.lab = "black")
+
+    tracer_nuage_ligne <- function(x, y, termes, col = "#1f1f1f") {
+      termes <- as.character(termes)
+      termes <- termes[nzchar(termes)]
+      if (!length(termes)) return(invisible(NULL))
+      n <- length(termes)
+      offsets_x <- seq(-0.45, 0.45, length.out = n)
+      offsets_y <- rep(c(0, -0.06, 0.06), length.out = n)
+      tailles <- seq(0.9, 0.65, length.out = n)
+      text(x + offsets_x, y + offsets_y, labels = termes, cex = tailles, col = col, xpd = TRUE)
+      invisible(NULL)
+    }
 
     if (identical(orientation, "horizontal")) {
       max_h <- suppressWarnings(max(hc$height, na.rm = TRUE))
@@ -519,7 +532,10 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       dx <- usr[[2]] - usr[[1]]
       x_text <- usr[[1]] + 0.02 * dx
 
-      text(x = x_text, y = tip_y, labels = hc$labels, pos = 4, offset = 0.2, cex = 0.72, col = tip_cols, xpd = TRUE)
+      text(x = x_text, y = tip_y + 0.18, labels = class_labels[hc$order], pos = 4, offset = 0.2, cex = 0.75, col = tip_cols[hc$order], xpd = TRUE)
+      for (i in seq_along(tip_y)) {
+        tracer_nuage_ligne(x = x_text + 0.7, y = tip_y[[i]] - 0.18, termes = termes_affiches[[hc$order[[i]]]], col = tip_cols[hc$order[[i]]])
+      }
       return(TRUE)
     }
 
@@ -535,8 +551,13 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     )
 
     usr <- par("usr")
-    y_text <- usr[[3]] + 0.05 * (usr[[4]] - usr[[3]])
-    text(x = seq_along(hc$order), y = y_text, labels = hc$labels[hc$order], srt = 90, adj = 0, cex = 0.7, col = tip_cols[hc$order], xpd = TRUE)
+    y_class <- usr[[3]] + 0.08 * (usr[[4]] - usr[[3]])
+    y_words <- usr[[3]] + 0.02 * (usr[[4]] - usr[[3]])
+    x_tips <- seq_along(hc$order)
+    text(x = x_tips, y = y_class, labels = class_labels[hc$order], cex = 0.72, col = tip_cols[hc$order], xpd = TRUE)
+    for (i in seq_along(x_tips)) {
+      tracer_nuage_ligne(x = x_tips[[i]], y = y_words, termes = termes_affiches[[hc$order[[i]]]], col = tip_cols[hc$order[[i]]])
+    }
     TRUE
   }
 
@@ -752,7 +773,20 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     for (tip in names(class_by_tip)) {
       xy <- node_xy[[tip]]
       if (is.null(xy)) next
-      text(xy[["x"]], xy[["y"]] + 0.2, labels = tip_label[[tip]], cex = 0.75, pos = 1, xpd = TRUE)
+      lignes <- strsplit(tip_label[[tip]], "\n", fixed = TRUE)[[1]]
+      classe_txt <- lignes[[1]]
+      termes_txt <- if (length(lignes) > 1) lignes[[2]] else ""
+      text(xy[["x"]], xy[["y"]] + 0.2, labels = classe_txt, cex = 0.75, pos = 1, xpd = TRUE)
+      if (nzchar(termes_txt)) {
+        termes_vec <- trimws(strsplit(termes_txt, ",", fixed = TRUE)[[1]])
+        termes_vec <- termes_vec[nzchar(termes_vec)]
+        if (length(termes_vec)) {
+          offsets_x <- seq(-0.45, 0.45, length.out = length(termes_vec))
+          offsets_y <- rep(c(-0.1, -0.2, 0), length.out = length(termes_vec))
+          tailles <- seq(0.85, 0.65, length.out = length(termes_vec))
+          text(xy[["x"]] + offsets_x, xy[["y"]] + 0.02 + offsets_y, labels = termes_vec, cex = tailles, xpd = TRUE)
+        }
+      }
     }
   } else {
     par(mar = c(1, 2, 3, 2))
@@ -777,7 +811,19 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     for (tip in names(class_by_tip)) {
       xy <- node_xy[[tip]]
       if (is.null(xy)) next
-      text(xy[["y"]] + 0.15, xy[["x"]], labels = tip_label[[tip]], cex = 0.75, pos = 4, xpd = TRUE)
+      lignes <- strsplit(tip_label[[tip]], "\n", fixed = TRUE)[[1]]
+      classe_txt <- lignes[[1]]
+      termes_txt <- if (length(lignes) > 1) lignes[[2]] else ""
+      text(xy[["y"]] + 0.15, xy[["x"]] + 0.1, labels = classe_txt, cex = 0.75, pos = 4, xpd = TRUE)
+      if (nzchar(termes_txt)) {
+        termes_vec <- trimws(strsplit(termes_txt, ",", fixed = TRUE)[[1]])
+        termes_vec <- termes_vec[nzchar(termes_vec)]
+        if (length(termes_vec)) {
+          offsets_y <- seq(-0.35, 0.35, length.out = length(termes_vec))
+          tailles <- seq(0.85, 0.65, length.out = length(termes_vec))
+          text(xy[["y"]] + 0.55, xy[["x"]] + offsets_y, labels = termes_vec, cex = tailles, pos = 4, xpd = TRUE)
+        }
+      }
     }
   }
 
