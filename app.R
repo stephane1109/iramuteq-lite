@@ -131,9 +131,9 @@ server <- function(input, output, session) {
     explor_assets = NULL,
     stats_corpus_df = NULL,
     stats_zipf_df = NULL,
-    min_docfreq_auto = 2L,
-    min_docfreq_effectif = 2L,
-    min_docfreq_mode_label = "2"
+    min_docfreq_auto = 3L,
+    min_docfreq_effectif = 3L,
+    min_docfreq_mode_label = "3"
   )
 
   if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
@@ -150,7 +150,7 @@ server <- function(input, output, session) {
     mode_label <- rv$min_docfreq_mode_label
 
     if (!is.finite(valeur_auto) || is.na(valeur_auto) || valeur_auto < 1L) {
-      return("Automatique (calcul IRaMuTeQ-like en attente d'un corpus)")
+      return("Fréquence minimale manuelle en attente d'un corpus")
     }
 
     if (!is.finite(valeur_effective) || is.na(valeur_effective) || valeur_effective < 1L) {
@@ -158,13 +158,12 @@ server <- function(input, output, session) {
     }
 
     if (is.null(mode_label) || !nzchar(mode_label)) {
-      mode_label <- "2"
+      mode_label <- "3"
     }
 
     paste0(
-      "Auto (2) = ", valeur_auto,
-      " | Valeur appliquée = ", valeur_effective,
-      " | Champ = ", mode_label
+      "Mode manuel = ", mode_label,
+      " | Valeur appliquée = ", valeur_effective
     )
   })
 

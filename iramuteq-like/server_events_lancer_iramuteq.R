@@ -273,38 +273,29 @@ register_events_lancer <- function(input, output, session, rv) {
     calculer_min_docfreq_iramuteq <- function(n_segments) {
       # Stabilisation: la formule auto historique peut devenir trop restrictive
       # sur certains corpus et conduire à des sorties dégénérées.
-      # On fixe explicitement la valeur auto à 2.
-      2L
+      # Valeur par défaut du champ manuel min_docfreq.
+      3L
     }
 
     lire_min_docfreq_iramuteq <- function(min_docfreq_mode, n_segments) {
-      valeur_auto <- calculer_min_docfreq_iramuteq(n_segments)
-      valeur_saisie <- suppressWarnings(as.integer(trimws(as.character(min_docfreq_mode))))
+      valeur_defaut <- calculer_min_docfreq_iramuteq(n_segments)
 
-      if (!is.finite(valeur_saisie) || is.na(valeur_saisie) || valeur_saisie < 1L) {
-        return(list(
-          valeur = valeur_auto,
-          auto = valeur_auto,
-          mode = as.character(valeur_auto),
-          source = "auto"
-        ))
-      }
+      valeur_brute <- suppressWarnings(as.integer(trimws(as.character(min_docfreq_mode))))
+      valeur_saisie <- if (length(valeur_brute) >= 1L) valeur_brute[[1]] else NA_integer_
 
-      if (valeur_saisie == valeur_auto) {
-        return(list(
-          valeur = valeur_auto,
-          auto = valeur_auto,
-          mode = as.character(valeur_auto),
-          source = "auto"
-        ))
+      if (length(valeur_saisie) != 1L || !is.finite(valeur_saisie) || is.na(valeur_saisie) || valeur_saisie < 1L) {
+        valeur_saisie <- valeur_defaut
+        source_mode <- "manuel_default"
+      } else {
+        source_mode <- "manuel"
       }
 
       source_mode <- if (valeur_saisie == valeur_auto) "auto" else "manuel"
       list(
         valeur = valeur_saisie,
-        auto = valeur_auto,
+        auto = valeur_defaut,
         mode = as.character(valeur_saisie),
-        source = "manuel"
+        source = source_mode
       )
     }
 
@@ -368,7 +359,7 @@ register_events_lancer <- function(input, output, session, rv) {
         rv,
         paste0(
           "min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_cfg$valeur,
-          " [auto(2)=", min_docfreq_cfg$auto,
+          " [defaut_manuel=", min_docfreq_cfg$auto,
           ", champ=", min_docfreq_cfg$mode,
           ", source=", min_docfreq_cfg$source,
           "] pour ", quanteda::ndoc(dfm_obj), " segments."
