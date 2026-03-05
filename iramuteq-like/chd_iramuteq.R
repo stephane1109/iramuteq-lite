@@ -561,13 +561,16 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     TRUE
   }
 
-  if (.tracer_dendrogramme_hclust(res_stats_df = res_stats_df, classes = classes, top_n_terms = top_n_terms, orientation = orientation)) {
-    return(invisible(NULL))
-  }
-
   n1 <- .normaliser_n1_chd(chd_obj$n1)
   list_fille <- chd_obj$list_fille
-  if (is.null(n1) || !is.list(list_fille) || !length(list_fille)) {
+  has_chd_tree <- !is.null(n1) && is.list(list_fille) && length(list_fille) > 0
+
+  # Priorité au vrai arbre CHD (list_mere/list_fille) pour rester fidèle au découpage des classes.
+  # Le hclust sur la table Classes × Termes n'est qu'un repli en cas de structure CHD indisponible.
+  if (!has_chd_tree) {
+    if (.tracer_dendrogramme_hclust(res_stats_df = res_stats_df, classes = classes, top_n_terms = top_n_terms, orientation = orientation)) {
+      return(invisible(NULL))
+    }
     plot.new()
     text(0.5, 0.5, "Dendrogramme CHD indisponible.", cex = 1.1)
     return(invisible(NULL))
