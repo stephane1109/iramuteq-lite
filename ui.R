@@ -116,11 +116,17 @@ ui <- fluidPage(
       numericInput("segment_size", "segment_size", value = 40, min = 5, step = 1),
       tags$div(
         tags$label("Fréquence minimale des termes (min_docfreq)"),
-        textInput(
+        numericInput(
           "min_docfreq_mode",
-          "Mode min_docfreq (A = automatique, sinon valeur manuelle)",
-          value = "A",
+          "Fréquence minimale des termes (manuel)",
+          value = 3,
+          min = 1,
+          step = 1,
           width = "100%"
+        ),
+        tags$div(
+          style = "color: #b00020; font-weight: 600; margin: 4px 0 6px 0;",
+          "Dans le logiciel iramuteq il semble que la valeur auto soit \"2\""
         ),
         tags$div(
           style = "padding: 6px 8px; background: #f5f7fb; border: 1px solid #d7dfef; border-radius: 4px;",
