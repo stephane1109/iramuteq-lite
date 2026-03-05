@@ -670,28 +670,40 @@ register_events_lancer <- function(input, output, session, rv) {
           md5 <- md5_fichier(chemin_fichier)
           ajouter_log(rv, paste0("MD5 fichier = ", md5))
 
-          corpus <- import_corpus_iramuteq(chemin_fichier)
-          ajouter_log(rv, paste0("Nombre de documents importés : ", ndoc(corpus)))
+          corpus_importe <- import_corpus_iramuteq(chemin_fichier)
+          ajouter_log(rv, paste0("Nombre de documents importés : ", ndoc(corpus_importe)))
 
           avancer(0.14, "Segmentation")
           rv$statut <- "Segmentation..."
           segment_size <- input$segment_size
+
+          # Stats corpus: calculées sur la segmentation brute (sans filtres CHD)
+          # pour rester indépendantes de la configuration d'analyse.
+          corpus_stats <- split_segments(
+            corpus_importe,
+            segment_size = segment_size,
+            remove_punct = FALSE,
+            remove_numbers = FALSE
+          )
+
+          # CHD: segmentation selon les options de prétraitement demandées.
           corpus <- split_segments(
-            corpus,
+            corpus_importe,
             segment_size = segment_size,
             remove_punct = isTRUE(input$supprimer_ponctuation),
             remove_numbers = isTRUE(input$supprimer_chiffres)
           )
           min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
           rv$min_docfreq_applique <- min_docfreq_val
-          ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
+          ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
+          ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", ndoc(corpus)))
 
           stats_corpus <- calculer_stats_corpus(
             chemin_fichier = chemin_fichier,
-            corpus_segments = corpus,
+            corpus_segments = corpus_stats,
             nom_corpus = input$fichier_corpus$name,
-            remove_punct = isTRUE(input$supprimer_ponctuation),
-            remove_numbers = isTRUE(input$supprimer_chiffres)
+            remove_punct = FALSE,
+            remove_numbers = FALSE
           )
           if (is.null(stats_corpus)) {
             rv$stats_corpus_df <- NULL
@@ -768,21 +780,18 @@ register_events_lancer <- function(input, output, session, rv) {
           langue_reference <- sortie_pipeline$langue_reference
           source_dictionnaire <- sortie_pipeline$source_dictionnaire
 
-          stats_corpus <- calculer_stats_corpus(
-            chemin_fichier = chemin_fichier,
-            corpus_segments = corpus,
-            nom_corpus = input$fichier_corpus$name,
-            tokens_stats = tok,
-            remove_punct = isTRUE(input$supprimer_ponctuation),
-            remove_numbers = isTRUE(input$supprimer_chiffres)
+          # Conserve les statistiques corpus calculées juste après segmentation,
+          # afin d'afficher un "Nombre de mots dans le corpus" stable et
+          # comparable au référentiel IRaMuTeQ. Le pipeline (stopwords,
+          # lemmatisation, min_docfreq) reste appliqué uniquement à la CHD.
+          n_tokens_pipeline <- length(unlist(tok, use.names = FALSE))
+          ajouter_log(
+            rv,
+            paste0(
+              "Nombre de mots conservés pour l'analyse après prétraitements : ",
+              n_tokens_pipeline
+            )
           )
-          if (is.null(stats_corpus)) {
-            rv$stats_corpus_df <- NULL
-            rv$stats_zipf_df <- NULL
-          } else {
-            rv$stats_corpus_df <- stats_corpus$table
-            rv$stats_zipf_df <- stats_corpus$zipf
-          }
 
           if (anyDuplicated(docnames(dfm_obj)) > 0) {
             dups_dfm <- sum(duplicated(as.character(docnames(dfm_obj))))
