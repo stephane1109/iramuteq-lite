@@ -645,8 +645,12 @@ register_events_lancer <- function(input, output, session, rv) {
       }
 
         # Utilise une notification de progression non bloquante.
-        # Le style par défaut peut afficher un voile gris modal sur toute l'application.
-        p <- Progress$new(session, min = 0, max = 1, style = "notification")
+        # Fallback robuste : certaines versions de Shiny ignorent/acceptent mal
+        # l'argument `style`; on force aussi l'option globale en amont.
+        p <- tryCatch(
+          Progress$new(session, min = 0, max = 1, style = "notification"),
+          error = function(e) Progress$new(session, min = 0, max = 1)
+        )
         on.exit(try(p$close(), silent = TRUE), add = TRUE)
 
         avancer <- function(valeur, detail) {
