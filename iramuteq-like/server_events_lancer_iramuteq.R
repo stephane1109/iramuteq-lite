@@ -279,14 +279,23 @@ register_events_lancer <- function(input, output, session, rv) {
 
     lire_min_docfreq_iramuteq <- function(min_docfreq_mode, n_segments) {
       valeur_auto <- calculer_min_docfreq_iramuteq(n_segments)
-      valeur_saisie <- suppressWarnings(as.integer(min_docfreq_mode))
+      valeur_saisie <- suppressWarnings(as.integer(trimws(as.character(min_docfreq_mode))))
 
       if (!is.finite(valeur_saisie) || is.na(valeur_saisie) || valeur_saisie < 1L) {
         return(list(
           valeur = valeur_auto,
           auto = valeur_auto,
           mode = as.character(valeur_auto),
-          source = "auto_invalid_fallback"
+          source = "auto"
+        ))
+      }
+
+      if (valeur_saisie == valeur_auto) {
+        return(list(
+          valeur = valeur_auto,
+          auto = valeur_auto,
+          mode = as.character(valeur_auto),
+          source = "auto"
         ))
       }
 
@@ -295,7 +304,7 @@ register_events_lancer <- function(input, output, session, rv) {
         valeur = valeur_saisie,
         auto = valeur_auto,
         mode = as.character(valeur_saisie),
-        source = source_mode
+        source = "manuel"
       )
     }
 

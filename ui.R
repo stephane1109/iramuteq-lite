@@ -116,10 +116,12 @@ ui <- fluidPage(
       numericInput("segment_size", "segment_size", value = 40, min = 5, step = 1),
       tags$div(
         tags$label("Fréquence minimale des termes (min_docfreq)"),
-        textInput(
+        numericInput(
           "min_docfreq_mode",
           "Valeur min_docfreq (2 = automatique, sinon valeur manuelle)",
-          value = "2",
+          value = 2,
+          min = 1,
+          step = 1,
           width = "100%"
         ),
         tags$div(

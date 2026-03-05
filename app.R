@@ -131,8 +131,8 @@ server <- function(input, output, session) {
     explor_assets = NULL,
     stats_corpus_df = NULL,
     stats_zipf_df = NULL,
-    min_docfreq_auto = 1L,
-    min_docfreq_effectif = 1L,
+    min_docfreq_auto = 2L,
+    min_docfreq_effectif = 2L,
     min_docfreq_mode_label = "2"
   )
 
