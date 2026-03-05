@@ -290,6 +290,7 @@ register_events_lancer <- function(input, output, session, rv) {
         source_mode <- "manuel"
       }
 
+      source_mode <- if (valeur_saisie == valeur_auto) "auto" else "manuel"
       list(
         valeur = valeur_saisie,
         auto = valeur_defaut,
