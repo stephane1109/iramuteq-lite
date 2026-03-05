@@ -122,6 +122,23 @@ server <- function(input, output, session) {
     is.character(x) && length(x) > 0 && !is.na(x[[1]]) && nzchar(x[[1]])
   }
 
+  creer_zip_depuis_dossier <- function(dossier_source, fichier_zip) {
+    if (!dir.exists(dossier_source)) {
+      stop("Dossier d'exports introuvable.")
+    }
+
+    ancien_wd <- getwd()
+    on.exit(setwd(ancien_wd), add = TRUE)
+    setwd(dirname(dossier_source))
+
+    if (file.exists(fichier_zip)) unlink(fichier_zip)
+    utils::zip(zipfile = fichier_zip, files = basename(dossier_source))
+
+    if (!file.exists(fichier_zip)) {
+      stop("Impossible de créer l'archive ZIP.")
+    }
+  }
+
   rv <- reactiveValues(
     logs = "",
     statut = "En attente.",
@@ -648,8 +665,10 @@ server <- function(input, output, session) {
   output$dl_zip <- downloadHandler(
     filename = function() "exports_iramuteq_like.zip",
     content = function(file) {
-      req(rv$zip_file)
-      file.copy(rv$zip_file, file, overwrite = TRUE)
+      req(rv$export_dir)
+      zip_tmp <- tempfile(fileext = ".zip")
+      creer_zip_depuis_dossier(rv$export_dir, zip_tmp)
+      file.copy(zip_tmp, file, overwrite = TRUE)
     }
   )
 
@@ -658,11 +677,7 @@ server <- function(input, output, session) {
     content = function(file) {
       req(rv$afc_dir)
       zip_tmp <- tempfile(fileext = ".zip")
-      ancien <- getwd()
-      on.exit(setwd(ancien), add = TRUE)
-      setwd(dirname(rv$afc_dir))
-      if (file.exists(zip_tmp)) unlink(zip_tmp)
-      utils::zip(zipfile = zip_tmp, files = basename(rv$afc_dir))
+      creer_zip_depuis_dossier(rv$afc_dir, zip_tmp)
       file.copy(zip_tmp, file, overwrite = TRUE)
     }
   )
