@@ -1,5 +1,17 @@
 # Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-like.
 
+.assurer_ale_depuis_depot <- function() {
+  if (requireNamespace("ale", quietly = TRUE)) return(TRUE)
+  if (!requireNamespace("remotes", quietly = TRUE)) return(FALSE)
+
+  ok <- tryCatch({
+    remotes::install_github("cran/ale", dependencies = FALSE, upgrade = "never", quiet = TRUE)
+    requireNamespace("ale", quietly = TRUE)
+  }, error = function(e) FALSE)
+
+  isTRUE(ok)
+}
+
 .extraire_classes_dendrogramme <- function(rv) {
   if (!is.null(rv$res$classes)) return(rv$res$classes)
 
@@ -16,6 +28,8 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 10,
                                             orientation = "vertical") {
   orientation <- match.arg(orientation, c("vertical", "horizontal"))
+
+  ale_disponible <- .assurer_ale_depuis_depot()
 
   if (is.null(rv$res) && is.null(rv$res_chd)) {
     plot.new()
@@ -55,6 +69,10 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
     top_n_terms = top_n_terms,
     orientation = orientation
   )
+
+  if (!isTRUE(ale_disponible)) {
+    mtext("Package 'ale' indisponible: tracé maintenu via le moteur interne.", side = 1, line = -1, cex = 0.7)
+  }
 
   invisible(NULL)
 }
