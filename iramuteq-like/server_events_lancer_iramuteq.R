@@ -353,70 +353,7 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
 
-    executer_textprepa_iramuteq <- function(ids, textes, input, rv) {
-      candidats_script <- unique(c(
-        file.path(app_dir, "iramuteq-like", "textprepa_iramuteq.py"),
-        file.path(getwd(), "iramuteq-like", "textprepa_iramuteq.py"),
-        file.path("iramuteq-like", "textprepa_iramuteq.py")
-      ))
-      script_path <- candidats_script[file.exists(candidats_script)][1]
-      if (is.na(script_path) || !nzchar(script_path)) {
-        stop("IRaMuTeQ-like: script textprepa_iramuteq.py introuvable.")
-      }
 
-      py_bin <- Sys.which("python3")
-      if (!nzchar(py_bin)) py_bin <- Sys.which("python")
-      if (!nzchar(py_bin)) {
-        stop("IRaMuTeQ-like: Python introuvable (python3/python).")
-      }
-
-      in_tsv <- tempfile(pattern = "iramuteq_prepa_in_", fileext = ".tsv")
-      out_tsv <- tempfile(pattern = "iramuteq_prepa_out_", fileext = ".tsv")
-
-      df_in <- data.frame(
-        doc_id = as.character(ids),
-        text = as.character(textes),
-        stringsAsFactors = FALSE
-      )
-      write.table(df_in, file = in_tsv, sep = "	", row.names = FALSE, col.names = TRUE, quote = TRUE, fileEncoding = "UTF-8")
-
-      args <- c(
-        script_path,
-        "--input", in_tsv,
-        "--output", out_tsv,
-        "--nettoyage_caracteres", ifelse(isTRUE(input$nettoyage_caracteres), "1", "0"),
-        "--forcer_minuscules_avant", ifelse(isTRUE(input$forcer_minuscules_avant), "1", "0"),
-        "--supprimer_chiffres", ifelse(isTRUE(input$supprimer_chiffres), "1", "0"),
-        "--supprimer_apostrophes", ifelse(isTRUE(input$supprimer_apostrophes), "1", "0")
-      )
-
-      res <- tryCatch(
-        system2(py_bin, args = args, stdout = TRUE, stderr = TRUE),
-        error = function(e) structure(conditionMessage(e), status = 1L)
-      )
-      status <- attr(res, "status")
-      if (is.null(status)) status <- 0L
-      if (!identical(as.integer(status), 0L) || !file.exists(out_tsv)) {
-        out_msg <- if (length(res)) paste(res, collapse = " | ") else "(aucun message)"
-        stop(paste0("IRaMuTeQ-like: échec textprepa_iramuteq.py (code ", status, ") : ", out_msg))
-      }
-
-      df_out <- read.delim(out_tsv, sep = "	", header = TRUE, stringsAsFactors = FALSE, quote = '"', encoding = "UTF-8")
-      if (!all(c("doc_id", "text") %in% names(df_out))) {
-        stop("IRaMuTeQ-like: sortie textprepa invalide (colonnes doc_id/text manquantes).")
-      }
-
-      ids_chr <- as.character(ids)
-      idx <- match(ids_chr, as.character(df_out$doc_id))
-      if (any(is.na(idx))) {
-        stop("IRaMuTeQ-like: alignement doc_id invalide après textprepa.")
-      }
-
-      textes_prep <- as.character(df_out$text[idx])
-      names(textes_prep) <- ids_chr
-      ajouter_log(rv, "IRaMuTeQ-like: préparation texte exécutée via iramuteq-like/textprepa_iramuteq.py")
-      textes_prep
-    }
 
     formater_df_csv_6_decimales <- function(df) {
       if (is.null(df)) return(df)
@@ -743,12 +680,10 @@ register_events_lancer <- function(input, output, session, rv) {
             supprimer_apostrophes = isTRUE(input$supprimer_apostrophes)
           )
 
-          textes_chd <- executer_textprepa_iramuteq(
-            ids = ids_corpus,
-            textes = textes_nettoyes,
-            input = input,
-            rv = rv
-          )
+          textes_chd <- textes_nettoyes
+          names(textes_chd) <- ids_corpus
+          ajouter_log(rv, "IRaMuTeQ-like: préparation texte exécutée via iramuteq-like/nettoyage_iramuteq.R")
+          ajouter_log(rv, "IRaMuTeQ-like: paramètres CHD/DFM (min_docfreq, stopwords, ponctuation, dictionnaire) appliqués dans iramuteq-like/server_events_lancer_iramuteq.R")
 
           source_dictionnaire <- "lexique_fr"
 
