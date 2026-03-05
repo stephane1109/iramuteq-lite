@@ -13,13 +13,18 @@ register_events_lancer <- function(input, output, session, rv) {
       ajouter_log <- function(rv, message) {
         if (is.null(rv)) return(invisible(NULL))
         msg <- as.character(message)
-        if (!length(msg) || is.na(msg) || !nzchar(msg)) return(invisible(NULL))
+        msg <- msg[!is.na(msg)]
+        msg <- msg[nzchar(msg)]
+        if (!length(msg)) return(invisible(NULL))
+        msg <- paste(msg, collapse = " ")
 
         precedent <- rv$logs
-        if (is.null(precedent) || !nzchar(precedent)) {
+        if (is.null(precedent) || !length(precedent) || all(is.na(precedent)) || !any(nzchar(precedent))) {
           rv$logs <- msg
         } else {
-          rv$logs <- paste(precedent, msg, sep = "\n")
+          precedent <- precedent[!is.na(precedent)]
+          precedent <- precedent[nzchar(precedent)]
+          rv$logs <- paste(c(precedent, msg), collapse = "\n")
         }
         invisible(NULL)
       }

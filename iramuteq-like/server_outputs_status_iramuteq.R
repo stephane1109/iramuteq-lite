@@ -4,17 +4,17 @@
 register_outputs_status <- function(input, output, session, rv) {
   output$statut <- renderText({
     statut <- rv$statut
-    if (is.null(statut) || !nzchar(statut)) {
+    if (is.null(statut) || !length(statut) || all(is.na(statut)) || !any(nzchar(statut))) {
       return("En attente.")
     }
-    statut
+    paste(statut[!is.na(statut) & nzchar(statut)], collapse = "\n")
   })
 
   output$logs <- renderText({
     logs <- rv$logs
-    if (is.null(logs) || !nzchar(logs)) {
+    if (is.null(logs) || !length(logs) || all(is.na(logs)) || !any(nzchar(logs))) {
       return("Aucun événement pour le moment.")
     }
-    logs
+    paste(logs[!is.na(logs) & nzchar(logs)], collapse = "\n")
   })
 }
