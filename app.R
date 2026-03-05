@@ -348,7 +348,8 @@ server <- function(input, output, session) {
       return(data.frame(Message = "Aucune classe valide détectée.", stringsAsFactors = FALSE))
     }
 
-    tab <- sort(table(classes), decreasing = TRUE)
+    tab <- table(classes)
+    tab <- tab[order(as.integer(names(tab)))]
     pct <- round(100 * as.numeric(tab) / sum(tab), 1)
     data.frame(
       Classe = paste0("Classe ", names(tab)),
