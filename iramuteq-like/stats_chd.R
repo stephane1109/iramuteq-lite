@@ -4,34 +4,54 @@ formatter_6_decimales_chd <- function(x) {
   ifelse(is.na(x), NA_character_, formatC(as.numeric(x), format = "f", digits = 6))
 }
 
-.inferer_type_terme_iramuteq <- function(termes) {
-  x <- tolower(as.character(termes))
-  out <- rep("", length(x))
-
-  extraire_tag <- function(pattern, value) {
-    idx <- grepl(pattern, x)
-    out[idx] <<- value
-  }
-
-  extraire_tag("(^|[_/])nom$", "nom")
-  extraire_tag("(^|[_/])adj$", "adj")
-  extraire_tag("(^|[_/])ver$", "ver")
-  extraire_tag("(^|[_/])adv$", "adv")
-  extraire_tag("(^|[_/])nr$", "nr")
-
-  out
-}
-
-.normaliser_type_terme_iramuteq <- function(type_vals, termes) {
+.normaliser_type_terme_iramuteq <- function(type_vals) {
   types <- tolower(trimws(as.character(type_vals)))
   types[is.na(types)] <- ""
   types[types %in% c("", "na", "nan", "null")] <- ""
-
-  types_inf <- .inferer_type_terme_iramuteq(termes)
-  idx_manquant <- !nzchar(types)
-  types[idx_manquant] <- types_inf[idx_manquant]
   types
 }
+construire_type_lexique_fr <- function(termes, lexique_fr_df) {
+  termes_chr <- tolower(trimws(as.character(termes)))
+  termes_chr[is.na(termes_chr)] <- ""
+
+  if (is.null(lexique_fr_df) || !is.data.frame(lexique_fr_df) || nrow(lexique_fr_df) == 0) {
+    return(rep("", length(termes_chr)))
+  }
+
+  colonnes_requises <- c("c_mot", "c_lemme", "c_morpho")
+  if (!all(colonnes_requises %in% names(lexique_fr_df))) {
+    return(rep("", length(termes_chr)))
+  }
+
+  lex <- lexique_fr_df[, colonnes_requises, drop = FALSE]
+  lex$c_mot <- tolower(trimws(as.character(lex$c_mot)))
+  lex$c_lemme <- tolower(trimws(as.character(lex$c_lemme)))
+  lex$c_morpho <- .normaliser_type_terme_iramuteq(lex$c_morpho)
+  lex <- lex[nzchar(lex$c_morpho), , drop = FALSE]
+
+  indexer <- function(cles, valeurs) {
+    cles <- tolower(trimws(as.character(cles)))
+    cles[is.na(cles)] <- ""
+    idx <- nzchar(cles)
+    if (!any(idx)) return(character(0))
+    stats::setNames(as.character(valeurs[idx]), cles[idx])
+  }
+
+  map_mot <- indexer(lex$c_mot, lex$c_morpho)
+  map_lemme <- indexer(lex$c_lemme, lex$c_morpho)
+
+  out <- unname(map_mot[termes_chr])
+  out[is.na(out)] <- ""
+
+  idx_manquant <- !nzchar(out)
+  if (any(idx_manquant)) {
+    out[idx_manquant] <- unname(map_lemme[termes_chr[idx_manquant]])
+  }
+
+  out[is.na(out)] <- ""
+  .normaliser_type_terme_iramuteq(out)
+}
+
 
 extraire_stats_chd_classe <- function(res_stats_df,
                                       classe,
@@ -116,7 +136,7 @@ extraire_stats_chd_classe <- function(res_stats_df,
     p_vals <- if ("p" %in% names(df)) suppressWarnings(as.numeric(df$p)) else if ("p_value" %in% names(df)) suppressWarnings(as.numeric(df$p_value)) else NA_real_
     formes <- if ("Terme" %in% names(df)) as.character(df$Terme) else rep("", nrow(df))
     type_source <- if ("Type" %in% names(df)) df$Type else if ("type" %in% names(df)) df$type else if ("pos" %in% names(df)) df$pos else if ("POS" %in% names(df)) df$POS else rep("", nrow(df))
-    types <- .normaliser_type_terme_iramuteq(type_source, formes)
+    types <- .normaliser_type_terme_iramuteq(type_source)
 
     out <- data.frame(
       num = seq_len(nrow(df)) - 1L,
