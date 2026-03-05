@@ -114,24 +114,12 @@ ui <- fluidPage(
 
       tags$div(class = "sidebar-section-title", "Paramètres généraux CHD"),
       numericInput("segment_size", "segment_size", value = 40, min = 5, step = 1),
-      tags$div(
-        tags$label("Fréquence minimale des termes (min_docfreq)"),
-        numericInput(
-          "min_docfreq_mode",
-          "Fréquence minimale des termes (manuel)",
-          value = 3,
-          min = 1,
-          step = 1,
-          width = "100%"
-        ),
-        tags$div(
-          style = "color: #b00020; font-weight: 600; margin: 4px 0 6px 0;",
-          "Dans le logiciel iramuteq il semble que la valeur auto soit \"2\""
-        ),
-        tags$div(
-          style = "padding: 6px 8px; background: #f5f7fb; border: 1px solid #d7dfef; border-radius: 4px;",
-          textOutput("min_docfreq_auto", inline = TRUE)
-        )
+      numericInput(
+        "min_docfreq",
+        "Fréquence minimale des termes (min_docfreq)",
+        value = 2,
+        min = 1,
+        step = 1
       ),
       numericInput("max_p", "max_p (p-value)", value = 0.05, min = 0, max = 1, step = 0.01),
       checkboxInput(

@@ -270,35 +270,6 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
 
-    calculer_min_docfreq_iramuteq <- function(n_segments) {
-      # Stabilisation: la formule auto historique peut devenir trop restrictive
-      # sur certains corpus et conduire à des sorties dégénérées.
-      # Valeur par défaut du champ manuel min_docfreq.
-      3L
-    }
-
-    lire_min_docfreq_iramuteq <- function(min_docfreq_mode, n_segments) {
-      valeur_defaut <- calculer_min_docfreq_iramuteq(n_segments)
-
-      valeur_brute <- suppressWarnings(as.integer(trimws(as.character(min_docfreq_mode))))
-      valeur_saisie <- if (length(valeur_brute) >= 1L) valeur_brute[[1]] else NA_integer_
-
-      if (length(valeur_saisie) != 1L || !is.finite(valeur_saisie) || is.na(valeur_saisie) || valeur_saisie < 1L) {
-        valeur_saisie <- valeur_defaut
-        source_mode <- "manuel_default"
-      } else {
-        source_mode <- "manuel"
-      }
-
-      source_mode <- if (valeur_saisie == valeur_auto) "auto" else "manuel"
-      list(
-        valeur = valeur_saisie,
-        auto = valeur_defaut,
-        mode = as.character(valeur_saisie),
-        source = source_mode
-      )
-    }
-
     lire_top_n_wordcloud <- function(input_top_n, valeur_defaut = 20L, min_value = 5L) {
       top_n <- suppressWarnings(as.integer(input_top_n))
       if (length(top_n) != 1L || is.na(top_n) || !is.finite(top_n)) {
@@ -351,22 +322,14 @@ register_events_lancer <- function(input, output, session, rv) {
       dfm_obj <- quanteda::dfm(tok)
       quanteda::docnames(dfm_obj) <- ids_docs
 
-      min_docfreq_cfg <- lire_min_docfreq_iramuteq(input$min_docfreq_mode, quanteda::ndoc(dfm_obj))
-      rv$min_docfreq_auto <- min_docfreq_cfg$auto
-      rv$min_docfreq_effectif <- min_docfreq_cfg$valeur
-      rv$min_docfreq_mode_label <- min_docfreq_cfg$mode
-      ajouter_log(
-        rv,
-        paste0(
-          "min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_cfg$valeur,
-          " [defaut_manuel=", min_docfreq_cfg$auto,
-          ", champ=", min_docfreq_cfg$mode,
-          ", source=", min_docfreq_cfg$source,
-          "] pour ", quanteda::ndoc(dfm_obj), " segments."
-        )
-      )
+      min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
+      if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
+        min_docfreq_val <- 1L
+      }
+      rv$min_docfreq_applique <- min_docfreq_val
+      ajouter_log(rv, paste0("min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_val, " (manuel)."))
 
-      dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_cfg$valeur)
+      dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_val)
 
       list(
         tok = tok,
@@ -712,10 +675,11 @@ register_events_lancer <- function(input, output, session, rv) {
             remove_punct = isTRUE(input$supprimer_ponctuation),
             remove_numbers = isTRUE(input$supprimer_chiffres)
           )
-          min_docfreq_cfg <- lire_min_docfreq_iramuteq(input$min_docfreq_mode, ndoc(corpus))
-          rv$min_docfreq_auto <- min_docfreq_cfg$auto
-          rv$min_docfreq_effectif <- min_docfreq_cfg$valeur
-          rv$min_docfreq_mode_label <- min_docfreq_cfg$mode
+          min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
+          if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
+            min_docfreq_val <- 1L
+          }
+          rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
           ids_orig <- as.character(docnames(corpus))

@@ -131,9 +131,7 @@ server <- function(input, output, session) {
     explor_assets = NULL,
     stats_corpus_df = NULL,
     stats_zipf_df = NULL,
-    min_docfreq_auto = 3L,
-    min_docfreq_effectif = 3L,
-    min_docfreq_mode_label = "3"
+    min_docfreq_applique = 2L
   )
 
   if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {
@@ -143,21 +141,6 @@ server <- function(input, output, session) {
     output$logs <- renderText({ rv$logs })
   }
 
-
-  output$min_docfreq_auto <- renderText({
-    valeur_auto <- suppressWarnings(as.integer(rv$min_docfreq_auto))
-    valeur_effective <- suppressWarnings(as.integer(rv$min_docfreq_effectif))
-    if (!is.finite(valeur_auto) || is.na(valeur_auto) || valeur_auto < 1L) {
-      return("Fréquence minimale des termes : mode manuel")
-    }
-
-    if (!is.finite(valeur_effective) || is.na(valeur_effective) || valeur_effective < 1L) {
-      valeur_effective <- valeur_auto
-    }
-
-
-    paste0("Fréquence minimale des termes (manuel) : ", valeur_effective)
-  })
 
   output$ui_afc_statut <- renderUI({
     if (est_texte_non_vide(rv$afc_erreur)) {
