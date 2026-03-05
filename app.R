@@ -25,6 +25,9 @@ packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, cha
 options(shiny.maxRequestSize = 300 * 1024^2)
 options(shinygadgets.viewer = shiny::browserViewer())
 options(bspm.sudo = TRUE)
+# Force une barre de progression non modale (notification) afin d'éviter
+# le voile gris bloquant avec certaines versions/configurations de Shiny.
+options(shiny.progress.style = "notification")
 
 if (file.exists("help.md")) {
   ui_aide_huggingface <- function() {
