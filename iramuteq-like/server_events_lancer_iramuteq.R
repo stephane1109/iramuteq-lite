@@ -275,6 +275,33 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
 
+
+
+    charger_lexique_fr <- function(app_dir) {
+      chemin_lexique <- file.path(app_dir, "dictionnaires", "lexique_fr.csv")
+      if (!file.exists(chemin_lexique)) {
+        stop(paste0("Fichier lexique introuvable: ", chemin_lexique))
+      }
+
+      lexique <- utils::read.csv2(
+        chemin_lexique,
+        stringsAsFactors = FALSE,
+        encoding = "UTF-8"
+      )
+
+      colonnes_requises <- c("c_mot", "c_lemme", "c_morpho")
+      if (!all(colonnes_requises %in% names(lexique))) {
+        stop("Le fichier lexique_fr.csv doit contenir les colonnes c_mot, c_lemme et c_morpho.")
+      }
+
+      lexique$c_mot <- tolower(trimws(as.character(lexique$c_mot)))
+      lexique$c_lemme <- tolower(trimws(as.character(lexique$c_lemme)))
+      lexique$c_morpho <- trimws(as.character(lexique$c_morpho))
+      lexique <- lexique[nzchar(lexique$c_mot) & nzchar(lexique$c_lemme), c("c_mot", "c_lemme", "c_morpho"), drop = FALSE]
+      lexique <- lexique[!duplicated(lexique$c_mot), , drop = FALSE]
+      lexique
+    }
+
     lire_min_docfreq_manuel <- function(valeur_brute, valeur_defaut = 1L) {
       valeur <- suppressWarnings(as.integer(valeur_brute))
       if (length(valeur) != 1L || is.na(valeur) || !is.finite(valeur) || valeur < 1L) {
@@ -319,6 +346,32 @@ register_events_lancer <- function(input, output, session, rv) {
       )
       quanteda::docnames(tok) <- ids_docs
       tok <- quanteda::tokens_tolower(tok)
+
+      if (isTRUE(input$lexique_utiliser_lemmes)) {
+        if (is.null(rv$lexique_fr_df) || !is.data.frame(rv$lexique_fr_df) || nrow(rv$lexique_fr_df) == 0) {
+          rv$lexique_fr_df <- charger_lexique_fr(app_dir)
+          ajouter_log(rv, paste0("Lexique (fr) chargé: ", nrow(rv$lexique_fr_df), " entrées."))
+        }
+
+        vocabulaire <- quanteda::featnames(quanteda::dfm(tok))
+        idx <- match(vocabulaire, rv$lexique_fr_df$c_mot)
+        a_remplacer <- !is.na(idx)
+
+        if (any(a_remplacer)) {
+          motifs <- vocabulaire[a_remplacer]
+          remplacements <- rv$lexique_fr_df$c_lemme[idx[a_remplacer]]
+          tok <- quanteda::tokens_replace(
+            tok,
+            pattern = motifs,
+            replacement = remplacements,
+            valuetype = "fixed",
+            case_insensitive = FALSE
+          )
+          ajouter_log(rv, paste0("Lemmatisation lexique_fr appliquée (forme -> c_lemme) sur ", length(motifs), " formes du vocabulaire."))
+        } else {
+          ajouter_log(rv, "Lemmatisation lexique_fr activée, mais aucune forme du vocabulaire n'a trouvé de lemme.")
+        }
+      }
 
       if (isTRUE(input$retirer_stopwords)) {
         stop_fr <- quanteda::stopwords("fr")
