@@ -270,6 +270,14 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
 
+    lire_min_docfreq_manuel <- function(valeur_brute, valeur_defaut = 1L) {
+      valeur <- suppressWarnings(as.integer(valeur_brute))
+      if (length(valeur) != 1L || is.na(valeur) || !is.finite(valeur) || valeur < 1L) {
+        return(as.integer(max(1L, valeur_defaut)))
+      }
+      as.integer(valeur)
+    }
+
     lire_top_n_wordcloud <- function(input_top_n, valeur_defaut = 20L, min_value = 5L) {
       top_n <- suppressWarnings(as.integer(input_top_n))
       if (length(top_n) != 1L || is.na(top_n) || !is.finite(top_n)) {
@@ -322,14 +330,14 @@ register_events_lancer <- function(input, output, session, rv) {
       dfm_obj <- quanteda::dfm(tok)
       quanteda::docnames(dfm_obj) <- ids_docs
 
-      min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
-      if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
-        min_docfreq_val <- 1L
-      }
+      min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
       rv$min_docfreq_applique <- min_docfreq_val
       ajouter_log(rv, paste0("min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_val, " (manuel)."))
 
       dfm_obj <- quanteda::dfm_trim(dfm_obj, min_docfreq = min_docfreq_val)
+      if (quanteda::nfeat(dfm_obj) < 1L) {
+        stop(paste0("Aucun terme ne reste après filtrage min_docfreq=", min_docfreq_val, ". Diminue cette valeur."))
+      }
 
       list(
         tok = tok,
@@ -675,9 +683,23 @@ register_events_lancer <- function(input, output, session, rv) {
             remove_punct = isTRUE(input$supprimer_ponctuation),
             remove_numbers = isTRUE(input$supprimer_chiffres)
           )
-          min_docfreq_val <- suppressWarnings(as.integer(input$min_docfreq))
-          if (length(min_docfreq_val) != 1L || is.na(min_docfreq_val) || !is.finite(min_docfreq_val) || min_docfreq_val < 1L) {
-            min_docfreq_val <- 1L
+          min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
+          rv$min_docfreq_applique <- min_docfreq_val
+          ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
+
+          stats_corpus <- calculer_stats_corpus(
+            chemin_fichier = chemin_fichier,
+            corpus_segments = corpus,
+            nom_corpus = input$fichier_corpus$name,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres)
+          )
+          if (is.null(stats_corpus)) {
+            rv$stats_corpus_df <- NULL
+            rv$stats_zipf_df <- NULL
+          } else {
+            rv$stats_corpus_df <- stats_corpus$table
+            rv$stats_zipf_df <- stats_corpus$zipf
           }
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
@@ -1305,6 +1327,7 @@ register_events_lancer <- function(input, output, session, rv) {
           if (file.exists(rv$zip_file)) unlink(rv$zip_file)
 
           ancien_wd <- getwd()
+          on.exit(setwd(ancien_wd), add = TRUE)
           setwd(rv$base_dir)
           utils::zip(zipfile = rv$zip_file, files = "exports")
           setwd(ancien_wd)
