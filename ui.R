@@ -152,9 +152,11 @@ ui <- fluidPage(
         condition = "input.modele_chd == 'iramuteq'",
         tags$div(
           style = "margin: 0 0 8px 0; padding: 8px; background: #f7fbff; border-left: 3px solid #1e5aa8;",
-          tags$strong("Options IRaMuTeQ-like (iramuteq-like/textprepa_iramuteq.py)"),
+          tags$strong("Options IRaMuTeQ-like (iramuteq-like/nettoyage_iramuteq.R)"),
           tags$br(),
-          tags$small("Ces options pilotent la préparation du texte avant la tokenisation en mode IRaMuTeQ-like.")
+          tags$small("Ces options pilotent la préparation du texte avant la tokenisation en mode IRaMuTeQ-like."),
+          tags$br(),
+          tags$small("Traitement: nettoyage via iramuteq-like/nettoyage_iramuteq.R ; paramètres CHD/DFM appliqués dans iramuteq-like/server_events_lancer_iramuteq.R")
         )
       ),
 
