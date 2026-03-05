@@ -13,7 +13,7 @@
 }
 
 tracer_dendogramme_iramuteq_ui <- function(rv,
-                                            top_n_terms = 4,
+                                            top_n_terms = 10,
                                             orientation = "vertical") {
   orientation <- match.arg(orientation, c("vertical", "horizontal"))
 

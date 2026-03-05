@@ -445,32 +445,98 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     classes_obs <- classes_obs[is.finite(classes_obs) & classes_obs > 0]
     pct_par_classe <- if (length(classes_obs)) prop.table(table(classes_obs)) * 100 else NULL
 
-    top_n_terms <- suppressWarnings(as.integer(top_n_terms))
-    if (!is.finite(top_n_terms) || is.na(top_n_terms) || top_n_terms < 1L) top_n_terms <- 1L
+    top_n_terms <- 10L
+
+    termes_chi2 <- vector("list", nrow(mat))
+    if ("chi2" %in% names(df)) {
+      df_chi <- df
+      df_chi$chi2 <- suppressWarnings(as.numeric(df_chi$chi2))
+      for (i in seq_len(nrow(mat))) {
+        cl <- suppressWarnings(as.integer(rownames(mat)[[i]]))
+        sous <- df_chi[df_chi$Classe == cl, , drop = FALSE]
+        if (!nrow(sous)) {
+          termes_chi2[[i]] <- character(0)
+          next
+        }
+        sous <- sous[is.finite(sous$chi2), , drop = FALSE]
+        sous <- sous[order(sous$chi2, decreasing = TRUE), , drop = FALSE]
+        termes <- unique(as.character(sous$Terme))
+        termes <- termes[nzchar(termes)]
+        termes_chi2[[i]] <- utils::head(termes, top_n_terms)
+      }
+    }
 
     labels <- vapply(seq_len(nrow(mat)), function(i) {
       cl <- as.integer(rownames(mat)[[i]])
       pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
       pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
 
-      ligne <- mat[i, , drop = TRUE]
-      termes <- names(sort(ligne, decreasing = TRUE))
-      termes <- termes[is.finite(ligne[termes]) & ligne[termes] > 0]
-      termes <- utils::head(termes, top_n_terms)
+      termes <- termes_chi2[[i]]
+      if (!length(termes)) {
+        ligne <- mat[i, , drop = TRUE]
+        termes <- names(sort(ligne, decreasing = TRUE))
+        termes <- termes[is.finite(ligne[termes]) & ligne[termes] > 0]
+        termes <- utils::head(termes, top_n_terms)
+      }
+
       if (!length(termes)) return(paste0("Classe ", cl, pct_txt))
       paste0("Classe ", cl, pct_txt, "\n", paste(termes, collapse = ", "))
     }, FUN.VALUE = character(1))
 
     hc$labels <- labels
+
+    classes_hc <- suppressWarnings(as.integer(rownames(mat)))
+    classes_hc[!is.finite(classes_hc)] <- seq_along(classes_hc)
+
+    palette_classes <- grDevices::hcl.colors(length(unique(classes_hc)), palette = "Dark 3")
+    cols_classes <- stats::setNames(palette_classes, as.character(sort(unique(classes_hc))))
+    tip_cols <- unname(cols_classes[as.character(classes_hc)])
+    tip_cols[!nzchar(tip_cols)] <- "#FFFFFF"
+
+    op <- par(no.readonly = TRUE)
+    on.exit(par(op), add = TRUE)
+    par(bg = "black", fg = "white", col.axis = "white", col.lab = "white")
+
+    if (identical(orientation, "horizontal")) {
+      max_h <- suppressWarnings(max(hc$height, na.rm = TRUE))
+      if (!is.finite(max_h) || max_h <= 0) max_h <- 1
+      xlim_use <- c(0, max_h * 2.2)
+
+      plot(
+        hc,
+        hang = -1,
+        horiz = TRUE,
+        labels = FALSE,
+        cex = 0.75,
+        main = "Dendrogramme CHD",
+        xlab = "",
+        sub = "",
+        xlim = xlim_use
+      )
+
+      tip_y <- match(seq_along(hc$order), hc$order)
+      usr <- par("usr")
+      dx <- usr[[2]] - usr[[1]]
+      x_text <- usr[[1]] + 0.02 * dx
+
+      text(x = x_text, y = tip_y, labels = hc$labels, pos = 4, offset = 0.2, cex = 0.72, col = tip_cols, xpd = TRUE)
+      return(TRUE)
+    }
+
     plot(
       hc,
       hang = -1,
-      horiz = identical(orientation, "horizontal"),
+      horiz = FALSE,
+      labels = FALSE,
       cex = 0.75,
       main = "Dendrogramme CHD",
       xlab = "",
       sub = ""
     )
+
+    usr <- par("usr")
+    y_text <- usr[[3]] + 0.05 * (usr[[4]] - usr[[3]])
+    text(x = seq_along(hc$order), y = y_text, labels = hc$labels[hc$order], srt = 90, adj = 0, cex = 0.7, col = tip_cols[hc$order], xpd = TRUE)
     TRUE
   }
 
