@@ -440,10 +440,6 @@ register_events_lancer <- function(input, output, session, rv) {
     output$ui_concordancier_iramuteq <- renderUI({
       req(rv$export_dir)
 
-      if (!identical(rv$res_type, "iramuteq")) {
-        return(tags$p("Concordancier IRaMuTeQ-like indisponible (mode de classification non supporté)."))
-      }
-
       if (!dir.exists(rv$export_dir)) {
         return(tags$div(
           style = "padding: 12px;",
