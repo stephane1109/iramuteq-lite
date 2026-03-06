@@ -302,5 +302,4 @@ ui <- fluidPage(
       )
     )
   )
-)
-)
+) # fin fluidPage
