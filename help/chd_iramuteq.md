@@ -142,3 +142,15 @@ Colonnes principales:
 - `mode_patate = FALSE`
 
 Ce profil donne généralement un bon compromis entre lisibilité des classes, stabilité et interprétabilité.
+
+---
+
+## 8) `CHD.R`, `chd_iramuteq.R`, `stats_chd.R` : doublons ou rôles complémentaires ?
+
+Ces fichiers sont **complémentaires** (pas des doublons stricts) :
+
+- `CHD.R` : implémente le **cœur historique** de l’algorithme CHD (partition, reclassement, structure d’arbre).
+- `chd_iramuteq.R` : joue le rôle de **façade IRaMuTeQ-like** (préparation des entrées, chargement des scripts historiques, orchestration, reconstruction des classes terminales, rendu dendrogramme).
+- `stats_chd.R` : gère la **mise en forme/extraction des tableaux de statistiques** par classe pour l’interface.
+
+En pratique, `chd_iramuteq.R` s’appuie explicitement sur `CHD.R` pour le calcul, puis `stats_chd.R` intervient pour l’affichage analytique.
