@@ -123,9 +123,5 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
     text(0.5, 0.5, "Impossible de tracer le dendrogramme via ale (API indisponible).", cex = 0.95)
   }
 
-  if (!isTRUE(ale_disponible)) {
-    mtext("Package 'ale' indisponible: tracé maintenu via le moteur interne.", side = 1, line = -1, cex = 0.7)
-  }
-
   invisible(NULL)
 }
