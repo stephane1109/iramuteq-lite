@@ -180,6 +180,7 @@ server <- function(input, output, session) {
     afc_plot_classes = NULL,
     afc_plot_termes = NULL,
     afc_plot_vars = NULL,
+    afc_zoom_terms = NULL,
 
     explor_assets = NULL,
     stats_corpus_df = NULL,
@@ -425,6 +426,10 @@ server <- function(input, output, session) {
 
   register_events_lancer(input, output, session, rv)
 
+  observeEvent(input$lancer, {
+    rv$afc_zoom_terms <- NULL
+  }, ignoreInit = TRUE)
+
   output$plot_afc_classes <- renderPlot({
     if (est_texte_non_vide(rv$afc_erreur)) {
       plot.new()
@@ -498,7 +503,37 @@ server <- function(input, output, session) {
     top_termes <- 120
     if (!is.null(input$afc_top_termes) && is.finite(input$afc_top_termes)) top_termes <- as.integer(input$afc_top_termes)
 
-    tracer_afc_classes_termes(rv$afc_obj, axes = c(1, 2), top_termes = top_termes, taille_sel = taille_sel, activer_repel = activer_repel)
+    xlim_zoom <- NULL
+    ylim_zoom <- NULL
+    if (is.list(rv$afc_zoom_terms)) {
+      x_vals <- suppressWarnings(as.numeric(rv$afc_zoom_terms$x))
+      y_vals <- suppressWarnings(as.numeric(rv$afc_zoom_terms$y))
+      if (length(x_vals) == 2 && all(is.finite(x_vals))) xlim_zoom <- sort(x_vals)
+      if (length(y_vals) == 2 && all(is.finite(y_vals))) ylim_zoom <- sort(y_vals)
+    }
+
+    tracer_afc_classes_termes(
+      rv$afc_obj,
+      axes = c(1, 2),
+      top_termes = top_termes,
+      taille_sel = taille_sel,
+      activer_repel = activer_repel,
+      xlim_zoom = xlim_zoom,
+      ylim_zoom = ylim_zoom
+    )
+  })
+
+  observeEvent(input$afc_brush, {
+    b <- input$afc_brush
+    if (is.null(b)) return()
+    if (!all(c("xmin", "xmax", "ymin", "ymax") %in% names(b))) return()
+    vals <- suppressWarnings(as.numeric(c(b$xmin, b$xmax, b$ymin, b$ymax)))
+    if (length(vals) != 4 || any(!is.finite(vals))) return()
+    rv$afc_zoom_terms <- list(x = sort(vals[1:2]), y = sort(vals[3:4]))
+  })
+
+  observeEvent(input$afc_zoom_reset, {
+    rv$afc_zoom_terms <- NULL
   })
 
   output$ui_table_afc_mots_par_classe <- renderUI({
