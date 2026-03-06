@@ -310,13 +310,15 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
   if (nrow(mat) < 2 || ncol(mat) < 1) return(data.frame())
 
   # Alignement avec l'approche IRaMuTeQ historique (BuildProf):
-  # - contingence documentaire (présence/absence terme)
+  # - contingence en occurrences de formes (et non présence documentaire)
   # - chi2 signé (sur/sous-représentation)
   # - p-value issue de chisq.test(..., correct = FALSE)
   mat_bin <- ifelse(mat > 0, 1L, 0L)
   total_docs <- nrow(mat_bin)
   docs_par_terme <- colSums(mat_bin)
   occ_par_terme <- colSums(mat)
+  occ_par_classe <- rowsum(rowSums(mat), group = classes, reorder = FALSE)
+  occ_totales <- sum(occ_par_terme)
 
   calc_chi_sign <- function(a, b, c, d) {
     tb <- matrix(c(a, b, c, d), nrow = 2, byrow = TRUE)
@@ -346,10 +348,20 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
     docs_terme_cl <- colSums(mat_bin[in_cl, , drop = FALSE])
     docs_terme_hors <- pmax(0, docs_par_terme - docs_terme_cl)
 
-    n11 <- as.numeric(docs_terme_cl)
-    n12 <- as.numeric(docs_terme_hors)
-    n21 <- as.numeric(pmax(0, docs_cl - docs_terme_cl))
-    n22 <- as.numeric(pmax(0, (total_docs - docs_cl) - docs_terme_hors))
+    occ_terme_cl <- colSums(mat[in_cl, , drop = FALSE])
+    occ_terme_hors <- pmax(0, occ_par_terme - occ_terme_cl)
+    occ_classe <- as.numeric(occ_par_classe[as.character(cl), 1, drop = TRUE])
+    occ_hors_classe <- pmax(0, occ_totales - occ_classe)
+
+    # Tableau 2x2 en occurrences:
+    # [1,1] occurrences du terme dans la classe
+    # [1,2] occurrences du terme hors classe
+    # [2,1] autres occurrences dans la classe
+    # [2,2] autres occurrences hors classe
+    n11 <- as.numeric(occ_terme_cl)
+    n12 <- as.numeric(occ_terme_hors)
+    n21 <- as.numeric(pmax(0, occ_classe - occ_terme_cl))
+    n22 <- as.numeric(pmax(0, occ_hors_classe - occ_terme_hors))
 
     chi_p <- t(mapply(calc_chi_sign, n11, n12, n21, n22))
 
