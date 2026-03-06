@@ -23,7 +23,15 @@ if (!exists("preparer_motifs_surlignage_nfd", mode = "function")) {
     if (!length(termes)) return(character(0))
     escaped <- .echapper_regex(termes)
     lots <- split(escaped, ceiling(seq_along(escaped) / max(1L, as.integer(taille_lot))))
-    vapply(lots, function(xs) paste0("(?i)(", paste(xs, collapse = "|"), ")"), character(1))
+    vapply(
+      lots,
+      function(xs) {
+        # Évite les surlignages partiels (ex: "an" dans "délinquants") en
+        # imposant des bornes de mot Unicode autour des termes ciblés.
+        paste0("(?i)(?<![\\p{L}\\p{N}_])(", paste(xs, collapse = "|"), ")(?![\\p{L}\\p{N}_])")
+      },
+      character(1)
+    )
   }
 }
 
@@ -69,7 +77,11 @@ if (!exists("detecter_segments_contenant_termes_unicode", mode = "function")) {
     if (!length(textes)) return(logical(0))
     if (!length(termes)) return(rep(FALSE, length(textes)))
 
-    pat <- paste0("(?i)", paste(.echapper_regex(termes), collapse = "|"))
+    pat <- paste0(
+      "(?i)(?<![\\p{L}\\p{N}_])(?:",
+      paste(.echapper_regex(termes), collapse = "|"),
+      ")(?![\\p{L}\\p{N}_])"
+    )
     grepl(pat, textes, perl = TRUE)
   }
 }
