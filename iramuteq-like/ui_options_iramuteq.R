@@ -25,6 +25,11 @@ ui_options_iramuteq <- function() {
       selected = "simple",
       inline = FALSE
     ),
+    conditionalPanel(
+      condition = "input.iramuteq_classif_mode == 'double'",
+      numericInput("iramuteq_rst1", "Taille de rst1", value = 12, min = 2, step = 1),
+      numericInput("iramuteq_rst2", "Taille de rst2", value = 14, min = 2, step = 1)
+    ),
     selectInput(
       "iramuteq_svd_method",
       "Méthode SVD",
