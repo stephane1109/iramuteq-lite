@@ -123,7 +123,7 @@ ui <- fluidPage(
       ),
       tags$p(
         style = "color: #d32f2f; font-size: 12px; margin-top: -8px;",
-        "Dans le logiciel IRaMuTeQ une forme doit avoir au minimum une fréquence de 3 pour être retenue"
+        "Dans le logiciel IRaMuTeQ une forme doit avoir au minimum une fréquence de 3 pour être retenue",
         "Plus la valeur est élevée, plus les termes rares sont exclus de l'analyse."
       ),
       numericInput("max_p", "max_p (p-value)", value = 0.05, min = 0, max = 1, step = 0.01),
