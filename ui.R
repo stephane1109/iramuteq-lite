@@ -117,7 +117,7 @@ ui <- fluidPage(
       numericInput(
         "min_docfreq",
         "Fréquence minimale des termes (min_docfreq)",
-        value = 2,
+        value = 3,
         min = 1,
         step = 1
       ),

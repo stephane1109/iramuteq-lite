@@ -185,7 +185,7 @@ server <- function(input, output, session) {
     explor_assets = NULL,
     stats_corpus_df = NULL,
     stats_zipf_df = NULL,
-    min_docfreq_applique = 2L
+    min_docfreq_applique = 3L
   )
 
   if (exists("register_outputs_status", mode = "function", inherits = TRUE)) {

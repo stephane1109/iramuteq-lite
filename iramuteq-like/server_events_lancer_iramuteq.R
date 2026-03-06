@@ -331,7 +331,7 @@ register_events_lancer <- function(input, output, session, rv) {
       lexique
     }
 
-    lire_min_docfreq_manuel <- function(valeur_brute, valeur_defaut = 1L) {
+    lire_min_docfreq_manuel <- function(valeur_brute, valeur_defaut = 3L) {
       valeur <- suppressWarnings(as.integer(valeur_brute))
       if (length(valeur) != 1L || is.na(valeur) || !is.finite(valeur) || valeur < 1L) {
         return(as.integer(max(1L, valeur_defaut)))
@@ -458,7 +458,7 @@ register_events_lancer <- function(input, output, session, rv) {
         }
       }
 
-      min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
+      min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 3L)
       rv$min_docfreq_applique <- min_docfreq_val
       ajouter_log(rv, paste0("min_docfreq appliqué (IRaMuTeQ-like) = ", min_docfreq_val, " (manuel)."))
 
@@ -780,7 +780,7 @@ register_events_lancer <- function(input, output, session, rv) {
               remove_numbers = isTRUE(input$supprimer_chiffres)
             )
           }
-          min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
+          min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 3L)
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
           ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", ndoc(corpus)))
