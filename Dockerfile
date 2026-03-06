@@ -16,6 +16,10 @@ RUN apt-get update && \
 # Paquets R (installation explicite via install.packages pour compatibilité CI)
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
 
+
+# ale installé directement depuis le dépôt miroir CRAN (plus stable que l'installation binaire selon l'environnement)
+RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('cran/ale', dependencies=NA, upgrade='never')"
+
 # FactoMineR depuis GitHub (sans tirer les Suggests)
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
 
