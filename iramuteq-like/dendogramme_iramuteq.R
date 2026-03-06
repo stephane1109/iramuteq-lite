@@ -1,5 +1,17 @@
 # Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-like.
 
+.assurer_ale_depuis_depot <- function() {
+  if (requireNamespace("ale", quietly = TRUE)) return(TRUE)
+  if (!requireNamespace("remotes", quietly = TRUE)) return(FALSE)
+
+  ok <- tryCatch({
+    remotes::install_github("cran/ale", dependencies = FALSE, upgrade = "never", quiet = TRUE)
+    requireNamespace("ale", quietly = TRUE)
+  }, error = function(e) FALSE)
+
+  isTRUE(ok)
+}
+
 .extraire_classes_dendrogramme <- function(rv) {
   if (!is.null(rv$res$classes)) return(rv$res$classes)
 
