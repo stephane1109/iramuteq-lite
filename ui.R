@@ -199,6 +199,7 @@ ui <- fluidPage(
       tags$small("Les caractères présents dans la liste entre crochets sont conservés ; tous les autres (ex. @ # & / emoji) sont remplacés par des espaces."),
       tags$small("L'option “Supprimer la ponctuation” pilote remove_punct, même si elle est autorisée par la regex ci-dessus."),
       tags$small("Cette option conserve les apostrophes lexicales (ex. aujourd'hui) et ne traite que les élisions en début de mot."),
+      ),
 
       tags$hr(),
 
@@ -301,4 +302,4 @@ ui <- fluidPage(
       )
     )
   )
-)
+) # fin fluidPage
