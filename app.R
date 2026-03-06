@@ -478,6 +478,48 @@ server <- function(input, output, session) {
     do.call(tabsetPanel, c(id = "tabs_stats_chd_iramuteq", panneaux))
   })
 
+  .calculer_limites_afc_termes <- function(obj, axes = c(1, 2)) {
+    if (is.null(obj) || is.null(obj$rowcoord) || is.null(obj$colcoord) || is.null(obj$termes_stats)) return(NULL)
+
+    ax1 <- axes[1]
+    ax2 <- axes[2]
+    st <- obj$termes_stats
+    st <- st[!is.na(st$Terme) & nzchar(st$Terme), , drop = FALSE]
+    st <- st[st$Terme %in% rownames(obj$colcoord), , drop = FALSE]
+    if (nrow(st) < 2) return(NULL)
+
+    xy_m <- obj$colcoord[st$Terme, , drop = FALSE]
+    x_m <- xy_m[, ax1]
+    y_m <- xy_m[, ax2]
+    x_c <- obj$rowcoord[, ax1]
+    y_c <- obj$rowcoord[, ax2]
+
+    lim <- calculer_lim_sym(c(x_m, x_c), c(y_m, y_c))
+    list(x = lim, y = lim)
+  }
+
+  .zoomer_limites <- function(lims, facteur = 1) {
+    if (!is.list(lims) || is.null(lims$x) || is.null(lims$y)) return(lims)
+
+    x <- suppressWarnings(as.numeric(lims$x))
+    y <- suppressWarnings(as.numeric(lims$y))
+    if (length(x) != 2 || any(!is.finite(x)) || length(y) != 2 || any(!is.finite(y))) return(lims)
+
+    cx <- mean(x)
+    cy <- mean(y)
+    hx <- abs(diff(range(x))) / 2
+    hy <- abs(diff(range(y))) / 2
+    if (!is.finite(hx) || hx == 0 || !is.finite(hy) || hy == 0) return(lims)
+
+    facteur <- as.numeric(facteur)
+    if (!is.finite(facteur) || facteur <= 0) facteur <- 1
+
+    list(
+      x = c(cx - hx * facteur, cx + hx * facteur),
+      y = c(cy - hy * facteur, cy + hy * facteur)
+    )
+  }
+
   output$plot_afc <- renderPlot({
     if (est_texte_non_vide(rv$afc_erreur)) {
       plot.new()
@@ -503,6 +545,8 @@ server <- function(input, output, session) {
     top_termes <- 120
     if (!is.null(input$afc_top_termes) && is.finite(input$afc_top_termes)) top_termes <- as.integer(input$afc_top_termes)
 
+    limites_base <- .calculer_limites_afc_termes(rv$afc_obj, axes = c(1, 2))
+
     xlim_zoom <- NULL
     ylim_zoom <- NULL
     if (is.list(rv$afc_zoom_terms)) {
@@ -511,6 +555,9 @@ server <- function(input, output, session) {
       if (length(x_vals) == 2 && all(is.finite(x_vals))) xlim_zoom <- sort(x_vals)
       if (length(y_vals) == 2 && all(is.finite(y_vals))) ylim_zoom <- sort(y_vals)
     }
+
+    if (is.null(xlim_zoom) && is.list(limites_base)) xlim_zoom <- limites_base$x
+    if (is.null(ylim_zoom) && is.list(limites_base)) ylim_zoom <- limites_base$y
 
     tracer_afc_classes_termes(
       rv$afc_obj,
@@ -530,6 +577,37 @@ server <- function(input, output, session) {
     vals <- suppressWarnings(as.numeric(c(b$xmin, b$xmax, b$ymin, b$ymax)))
     if (length(vals) != 4 || any(!is.finite(vals))) return()
     rv$afc_zoom_terms <- list(x = sort(vals[1:2]), y = sort(vals[3:4]))
+  })
+
+  observeEvent(input$afc_zoom_in, {
+    if (is.null(rv$afc_obj) || is.null(rv$afc_obj$ca)) return()
+    limites_base <- .calculer_limites_afc_termes(rv$afc_obj, axes = c(1, 2))
+    limites_courantes <- rv$afc_zoom_terms
+    if (!is.list(limites_courantes) || is.null(limites_courantes$x) || is.null(limites_courantes$y)) {
+      limites_courantes <- limites_base
+    }
+    rv$afc_zoom_terms <- .zoomer_limites(limites_courantes, facteur = 0.75)
+  })
+
+  observeEvent(input$afc_zoom_out, {
+    if (is.null(rv$afc_obj) || is.null(rv$afc_obj$ca)) return()
+    limites_base <- .calculer_limites_afc_termes(rv$afc_obj, axes = c(1, 2))
+    limites_courantes <- rv$afc_zoom_terms
+    if (!is.list(limites_courantes) || is.null(limites_courantes$x) || is.null(limites_courantes$y)) {
+      limites_courantes <- limites_base
+    }
+    lim_zoom <- .zoomer_limites(limites_courantes, facteur = 1.33)
+    if (is.list(limites_base)) {
+      lim_zoom$x <- c(
+        max(min(lim_zoom$x), min(limites_base$x)),
+        min(max(lim_zoom$x), max(limites_base$x))
+      )
+      lim_zoom$y <- c(
+        max(min(lim_zoom$y), min(limites_base$y)),
+        min(max(lim_zoom$y), max(limites_base$y))
+      )
+    }
+    rv$afc_zoom_terms <- lim_zoom
   })
 
   observeEvent(input$afc_zoom_reset, {

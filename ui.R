@@ -279,10 +279,12 @@ ui <- fluidPage(
           tags$p("Les mots sont colorés selon la classe où ils sont le plus surreprésentés (résidus standardisés) et leur taille est proportionnelle à leur fréquence globale ou chi2 (selon le choix)."),
           tags$div(
             style = "display:flex; gap:8px; align-items:center; margin-bottom:8px;",
+            actionButton("afc_zoom_in", "Zoom +"),
+            actionButton("afc_zoom_out", "Zoom -"),
             actionButton("afc_zoom_reset", "Réinitialiser le zoom AFC termes"),
             tags$small("Astuce: clique-glisse sur le graphique pour zoomer.")
           ),
-          plotOutput("plot_afc", height = "720px", brush = "afc_brush"),
+          plotOutput("plot_afc", height = "720px", brush = brushOpts(id = "afc_brush", resetOnNew = TRUE)),
           tags$h4("Table des mots projetés (fréquence, chi2, p-value, segment exemple)"),
           uiOutput("ui_table_afc_mots_par_classe"),
 
