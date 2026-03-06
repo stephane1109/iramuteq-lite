@@ -121,8 +121,6 @@ generer_concordancier_iramuteq_html <- function(
   rv = NULL,
   ...
 ) {
-  if (!is.null(rv)) ajouter_log(rv, "Concordancier IRaMuTeQ-like : génération HTML (filtres IRaMuTeQ + surlignage Unicode).")
-
   con <- file(chemin_sortie, open = "wt", encoding = "UTF-8")
   on.exit(try(close(con), silent = TRUE), add = TRUE)
 
@@ -182,12 +180,6 @@ generer_concordancier_iramuteq_html <- function(
     if (length(segments_keep) == 0 && length(segments) > 0) {
       segments_keep <- segments
       ids_keep <- ids_cl
-      if (!is.null(rv)) {
-        ajouter_log(rv, paste0(
-          "Concordancier IRaMuTeQ-like : classe ", cl,
-          " sans segment après filtrage, fallback sur tous les segments."
-        ))
-      }
     }
 
     writeLines(paste0("<p><em>Segments conservés : ", length(segments_keep), " / ", length(segments), "</em></p>"), con)
@@ -212,11 +204,7 @@ generer_concordancier_iramuteq_html <- function(
       motifs,
       "<span class='highlight'>",
       "</span>",
-      on_error = function(e, pat) {
-        if (!is.null(rv)) {
-          ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : erreur regex [", pat, "] - ", conditionMessage(e)))
-        }
-      }
+      on_error = function(e, pat) {}
     )
 
     has_hl <- any(grepl("<span class='highlight'>", segments_hl, fixed = TRUE))
@@ -230,11 +218,7 @@ generer_concordancier_iramuteq_html <- function(
         motifs,
         "<span class='highlight'>",
         "</span>",
-        on_error = function(e, pat) {
-          if (!is.null(rv)) {
-            ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : erreur regex index [", pat, "] - ", conditionMessage(e)))
-          }
-        }
+        on_error = function(e, pat) {}
       )
       if (any(grepl("<span class='highlight'>", segments_hl_idx, fixed = TRUE))) {
         segments_hl <- segments_hl_idx
@@ -253,6 +237,5 @@ generer_concordancier_iramuteq_html <- function(
 
   writeLines("</body></html>", con)
   close(con)
-  if (!is.null(rv)) ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : HTML écrit dans : ", chemin_sortie))
   chemin_sortie
 }
