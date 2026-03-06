@@ -714,8 +714,9 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Segmentation..."
           segment_size <- input$segment_size
 
-          # Stats corpus: calculées sur la segmentation brute (sans filtres CHD)
-          # pour rester indépendantes de la configuration d'analyse.
+          # Stats corpus: calculées sur la segmentation brute (sans filtres CHD).
+          # Le comptage lexical est ensuite fait sur les textes préparés pour
+          # éviter un écart entre statistiques affichées et pipeline IRaMuTeQ-like.
           corpus_stats <- split_segments(
             corpus_importe,
             segment_size = segment_size,
@@ -735,20 +736,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
           ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", ndoc(corpus)))
 
-          stats_corpus <- calculer_stats_corpus(
-            chemin_fichier = chemin_fichier,
-            corpus_segments = corpus_stats,
-            nom_corpus = input$fichier_corpus$name,
-            remove_punct = FALSE,
-            remove_numbers = FALSE
-          )
-          if (is.null(stats_corpus)) {
-            rv$stats_corpus_df <- NULL
-            rv$stats_zipf_df <- NULL
-          } else {
-            rv$stats_corpus_df <- stats_corpus$table
-            rv$stats_zipf_df <- stats_corpus$zipf
-          }
+          stats_corpus <- NULL
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
 
@@ -784,6 +772,29 @@ register_events_lancer <- function(input, output, session, rv) {
 
           textes_chd <- textes_nettoyes
           names(textes_chd) <- ids_corpus
+          tokens_stats <- quanteda::tokens(
+            textes_nettoyes,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres),
+            remove_symbols = TRUE,
+            remove_separators = TRUE,
+            split_hyphens = FALSE
+          )
+          stats_corpus <- calculer_stats_corpus(
+            chemin_fichier = chemin_fichier,
+            corpus_segments = corpus_stats,
+            nom_corpus = input$fichier_corpus$name,
+            tokens_stats = tokens_stats,
+            remove_punct = isTRUE(input$supprimer_ponctuation),
+            remove_numbers = isTRUE(input$supprimer_chiffres)
+          )
+          if (is.null(stats_corpus)) {
+            rv$stats_corpus_df <- NULL
+            rv$stats_zipf_df <- NULL
+          } else {
+            rv$stats_corpus_df <- stats_corpus$table
+            rv$stats_zipf_df <- stats_corpus$zipf
+          }
           ajouter_log(rv, "IRaMuTeQ-like: préparation texte exécutée via iramuteq-like/nettoyage_iramuteq.R")
           ajouter_log(rv, "IRaMuTeQ-like: paramètres CHD/DFM (min_docfreq, stopwords, ponctuation, dictionnaire) appliqués dans iramuteq-like/server_events_lancer_iramuteq.R")
 
