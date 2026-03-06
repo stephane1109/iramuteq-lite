@@ -162,7 +162,8 @@ calculer_chd_iramuteq <- function(
   svd_method = c("irlba", "svdR"),
   libsvdc_path = NULL,
   binariser = FALSE,
-  rscripts_dir = NULL
+  rscripts_dir = NULL,
+  max_formes = 6000L
 ) {
   svd_method <- match.arg(svd_method)
 
@@ -171,7 +172,25 @@ calculer_chd_iramuteq <- function(
 
   .charger_scripts_iramuteq_chd(rscripts_dir)
 
-  mat <- as.matrix(dfm_obj)
+  max_formes_use <- suppressWarnings(as.integer(max_formes))
+  if (is.na(max_formes_use) || max_formes_use < 1L) max_formes_use <- 6000L
+
+  n_feat_avant_max <- quanteda::nfeat(dfm_obj)
+  dfm_utilise <- dfm_obj
+  if (n_feat_avant_max > max_formes_use) {
+    freq_globales <- Matrix::colSums(dfm_obj)
+    idx_top <- order(freq_globales, decreasing = TRUE)[seq_len(max_formes_use)]
+    formes_top <- names(freq_globales)[idx_top]
+    dfm_utilise <- quanteda::dfm_select(
+      dfm_obj,
+      pattern = formes_top,
+      selection = "keep",
+      valuetype = "fixed",
+      case_insensitive = FALSE
+    )
+  }
+
+  mat <- as.matrix(dfm_utilise)
   if (nrow(mat) < 2 || ncol(mat) < 2) {
     stop("CHD IRaMuTeQ-like: matrice trop pauvre (>=2 lignes et >=2 colonnes requises).")
   }
@@ -199,6 +218,12 @@ calculer_chd_iramuteq <- function(
   }
 
   chd$n1 <- n1
+  chd$dfm_utilise <- dfm_utilise
+  chd$max_formes_info <- list(
+    max_formes = max_formes_use,
+    n_feat_avant = n_feat_avant_max,
+    n_feat_apres = quanteda::nfeat(dfm_utilise)
+  )
 
   chd
 }
