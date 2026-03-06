@@ -17,9 +17,6 @@ RUN apt-get update && \
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
 
 
-# ale installé depuis un dépôt CRAN ciblé (avec retry miroir) pour stabiliser l'installation
-RUN R -q -e "repos_ale <- c('https://cloud.r-project.org', 'https://cran.r-project.org'); ok <- FALSE; for (repo in repos_ale) { if (ok) break; try({ install.packages('ale', repos = repo, type = 'source'); ok <- requireNamespace('ale', quietly = TRUE) }, silent = TRUE) }; if (!ok) stop('Installation de ale impossible depuis les dépôts CRAN ciblés.')"
-
 # FactoMineR depuis GitHub (sans tirer les Suggests)
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
 
@@ -36,9 +33,7 @@ RUN set -eux; \
 ENV HOME=/home/user
 WORKDIR /home/user/app
 
-COPY . /home/user/app
-
-RUN chown -R user:user /home/user/app
+COPY --chown=user:user . /home/user/app
 
 USER user
 EXPOSE 7860
