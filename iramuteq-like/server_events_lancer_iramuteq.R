@@ -184,6 +184,35 @@ register_events_lancer <- function(input, output, session, rv) {
       }
     }
 
+    if (!exists("split_segments_double_rst", mode = "function", inherits = TRUE)) {
+      split_segments_double_rst <- function(corpus,
+                                            rst1 = 12,
+                                            rst2 = 14,
+                                            remove_punct = FALSE,
+                                            remove_numbers = FALSE) {
+        rst1 <- suppressWarnings(as.integer(rst1))
+        rst2 <- suppressWarnings(as.integer(rst2))
+        if (!is.finite(rst1) || is.na(rst1) || rst1 < 1) rst1 <- 12L
+        if (!is.finite(rst2) || is.na(rst2) || rst2 < 1) rst2 <- 14L
+
+        # Reproduction minimale du mode "double sur RST" :
+        # 1) segmentation initiale en blocs rst1,
+        # 2) re-segmentation des blocs en rst2 pour l'analyse CHD.
+        corpus_rst1 <- split_segments(
+          corpus,
+          segment_size = rst1,
+          remove_punct = isTRUE(remove_punct),
+          remove_numbers = isTRUE(remove_numbers)
+        )
+        split_segments(
+          corpus_rst1,
+          segment_size = rst2,
+          remove_punct = isTRUE(remove_punct),
+          remove_numbers = isTRUE(remove_numbers)
+        )
+      }
+    }
+
     if (!exists("calculer_stats_corpus", mode = "function", inherits = TRUE)) {
       calculer_stats_corpus <- function(chemin_fichier,
                                         corpus_segments,
@@ -713,6 +742,14 @@ register_events_lancer <- function(input, output, session, rv) {
           avancer(0.14, "Segmentation")
           rv$statut <- "Segmentation..."
           segment_size <- input$segment_size
+          classif_mode_iramuteq <- as.character(input$iramuteq_classif_mode)
+          if (!classif_mode_iramuteq %in% c("simple", "double")) classif_mode_iramuteq <- "simple"
+
+          rst1_iramuteq <- suppressWarnings(as.integer(input$iramuteq_rst1))
+          if (is.na(rst1_iramuteq) || rst1_iramuteq < 2L) rst1_iramuteq <- 12L
+
+          rst2_iramuteq <- suppressWarnings(as.integer(input$iramuteq_rst2))
+          if (is.na(rst2_iramuteq) || rst2_iramuteq < 2L) rst2_iramuteq <- 14L
 
           # Stats corpus: calculées sur la segmentation brute (sans filtres CHD)
           # pour rester indépendantes de la configuration d'analyse.
@@ -724,12 +761,24 @@ register_events_lancer <- function(input, output, session, rv) {
           )
 
           # CHD: segmentation selon les options de prétraitement demandées.
-          corpus <- split_segments(
-            corpus_importe,
-            segment_size = segment_size,
-            remove_punct = isTRUE(input$supprimer_ponctuation),
-            remove_numbers = isTRUE(input$supprimer_chiffres)
-          )
+          # En mode double, on applique deux découpes successives contrôlées par rst1/rst2.
+          if (identical(classif_mode_iramuteq, "double")) {
+            corpus <- split_segments_double_rst(
+              corpus_importe,
+              rst1 = rst1_iramuteq,
+              rst2 = rst2_iramuteq,
+              remove_punct = isTRUE(input$supprimer_ponctuation),
+              remove_numbers = isTRUE(input$supprimer_chiffres)
+            )
+            ajouter_log(rv, paste0("Segmentation CHD double (RST): rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq, "."))
+          } else {
+            corpus <- split_segments(
+              corpus_importe,
+              segment_size = segment_size,
+              remove_punct = isTRUE(input$supprimer_ponctuation),
+              remove_numbers = isTRUE(input$supprimer_chiffres)
+            )
+          }
           min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
@@ -927,6 +976,7 @@ register_events_lancer <- function(input, output, session, rv) {
               " | mincl_mode=", mincl_mode_iramuteq,
               if (identical(mincl_mode_iramuteq, "manuel")) paste0(" | mincl=", mincl_iramuteq) else "",
               " | classif_mode=", classif_mode_iramuteq,
+              if (identical(classif_mode_iramuteq, "double")) paste0(" | rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq) else "",
               " | svd_method=", svd_method_iramuteq,
               " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
             )
