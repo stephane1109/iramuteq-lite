@@ -196,20 +196,55 @@ register_events_lancer <- function(input, output, session, rv) {
         if (!is.finite(rst2) || is.na(rst2) || rst2 < 1) rst2 <- 14L
 
         # Reproduction minimale du mode "double sur RST" :
-        # 1) segmentation initiale en blocs rst1,
-        # 2) re-segmentation des blocs en rst2 pour l'analyse CHD.
+        # 1) segmentation en blocs rst1,
+        # 2) segmentation indépendante en blocs rst2,
+        # 3) concaténation des deux jeux de segments pour l'analyse CHD.
+        #
+        # Note: re-segmenter rst1 -> rst2 rend rst2 inopérant quand rst2 > rst1
+        # (les segments sont déjà trop courts). Ici, chaque RST est appliqué au
+        # corpus d'origine pour conserver l'effet attendu des deux paramètres.
         corpus_rst1 <- split_segments(
           corpus,
           segment_size = rst1,
           remove_punct = isTRUE(remove_punct),
           remove_numbers = isTRUE(remove_numbers)
         )
-        split_segments(
-          corpus_rst1,
+
+        corpus_rst2 <- split_segments(
+          corpus,
           segment_size = rst2,
           remove_punct = isTRUE(remove_punct),
           remove_numbers = isTRUE(remove_numbers)
         )
+
+        txt1 <- as.character(corpus_rst1)
+        txt2 <- as.character(corpus_rst2)
+
+        id1 <- paste0(as.character(quanteda::docnames(corpus_rst1)), "_rst1")
+        id2 <- paste0(as.character(quanteda::docnames(corpus_rst2)), "_rst2")
+
+        df_out <- data.frame(
+          doc_id = c(id1, id2),
+          text = c(txt1, txt2),
+          stringsAsFactors = FALSE
+        )
+
+        corp_out <- quanteda::corpus(df_out, text_field = "text")
+
+        dv1 <- tryCatch(quanteda::docvars(corpus_rst1), error = function(e) NULL)
+        dv2 <- tryCatch(quanteda::docvars(corpus_rst2), error = function(e) NULL)
+
+        if (!is.null(dv1) && !is.null(dv2)) {
+          cols <- union(colnames(dv1), colnames(dv2))
+          for (cn in cols) {
+            v1 <- if (cn %in% colnames(dv1)) as.character(dv1[[cn]]) else rep(NA_character_, nrow(dv1))
+            v2 <- if (cn %in% colnames(dv2)) as.character(dv2[[cn]]) else rep(NA_character_, nrow(dv2))
+            quanteda::docvars(corp_out, cn) <- c(v1, v2)
+          }
+        }
+
+        quanteda::docvars(corp_out, "rst_source") <- c(rep("rst1", length(txt1)), rep("rst2", length(txt2)))
+        corp_out
       }
     }
 
