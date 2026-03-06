@@ -381,12 +381,53 @@ register_events_lancer <- function(input, output, session, rv) {
         ajouter_log(rv, paste0("Filtrage stopwords quanteda(fr) appliqué : ", n_feat_avant_stop, " -> ", n_feat_apres_stop, " termes uniques."))
       }
 
-      if (isTRUE(input$filtrage_morpho)) {
-        ajouter_log(rv, "IRaMuTeQ-like: filtrage morphologique demandé mais indisponible (source lexique_fr forcée) ; étape ignorée.")
-      }
-
       dfm_obj <- quanteda::dfm(tok)
       quanteda::docnames(dfm_obj) <- ids_docs
+
+      if (isTRUE(input$filtrage_morpho) && identical(input$source_dictionnaire, "lexique_fr")) {
+        if (is.null(rv$lexique_fr_df) || !is.data.frame(rv$lexique_fr_df) || nrow(rv$lexique_fr_df) == 0) {
+          rv$lexique_fr_df <- charger_lexique_fr(app_dir)
+          ajouter_log(rv, paste0("Lexique (fr) chargé pour filtrage morphosyntaxique: ", nrow(rv$lexique_fr_df), " entrées."))
+        }
+
+        morpho_selection <- toupper(trimws(as.character(input$pos_lexique_a_conserver)))
+        morpho_selection <- unique(morpho_selection[nzchar(morpho_selection)])
+
+        if (length(morpho_selection) > 0) {
+          lex <- rv$lexique_fr_df
+          lex_morpho <- toupper(trimws(as.character(lex$c_morpho)))
+          idx <- nzchar(lex_morpho) & lex_morpho %in% morpho_selection
+          termes_autorises <- unique(c(
+            tolower(trimws(as.character(lex$c_mot[idx]))),
+            tolower(trimws(as.character(lex$c_lemme[idx])))
+          ))
+          termes_autorises <- termes_autorises[nzchar(termes_autorises)]
+
+          n_feat_avant_morpho <- quanteda::nfeat(dfm_obj)
+          dfm_obj <- quanteda::dfm_select(
+            dfm_obj,
+            pattern = termes_autorises,
+            selection = "keep",
+            valuetype = "fixed",
+            case_insensitive = FALSE
+          )
+          n_feat_apres_morpho <- quanteda::nfeat(dfm_obj)
+          ajouter_log(
+            rv,
+            paste0(
+              "Filtrage morphosyntaxique lexique_fr appliqué (c_morpho=",
+              paste(morpho_selection, collapse = ","),
+              ") : ",
+              n_feat_avant_morpho,
+              " -> ",
+              n_feat_apres_morpho,
+              " termes uniques."
+            )
+          )
+        } else {
+          ajouter_log(rv, "Filtrage morphosyntaxique activé sans catégorie c_morpho sélectionnée : étape ignorée.")
+        }
+      }
 
       min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 1L)
       rv$min_docfreq_applique <- min_docfreq_val
@@ -972,11 +1013,12 @@ register_events_lancer <- function(input, output, session, rv) {
             arrange(Classe, desc(chi2))
 
           if (identical(source_dictionnaire, "lexique_fr") &&
-              !is.null(rv$lexique_fr_df) &&
-              is.data.frame(rv$lexique_fr_df) &&
-              nrow(rv$lexique_fr_df) > 0 &&
               "Terme" %in% names(res_stats_df) &&
               exists("construire_type_lexique_fr", mode = "function", inherits = TRUE)) {
+            if (is.null(rv$lexique_fr_df) || !is.data.frame(rv$lexique_fr_df) || nrow(rv$lexique_fr_df) == 0) {
+              rv$lexique_fr_df <- charger_lexique_fr(app_dir)
+              ajouter_log(rv, paste0("Lexique (fr) chargé pour typer les termes CHD: ", nrow(rv$lexique_fr_df), " entrées."))
+            }
             res_stats_df$Type <- construire_type_lexique_fr(res_stats_df$Terme, rv$lexique_fr_df)
           }
 
