@@ -155,9 +155,7 @@ ui <- fluidPage(
           tags$strong("Options IRaMuTeQ-like (iramuteq-like/nettoyage_iramuteq.R)"),
           tags$br(),
           tags$small("Ces options pilotent la préparation du texte avant la tokenisation en mode IRaMuTeQ-like."),
-          tags$br(),
-          tags$small("Traitement: nettoyage via iramuteq-like/nettoyage_iramuteq.R ; paramètres CHD/DFM appliqués dans iramuteq-like/server_events_lancer_iramuteq.R")
-        )
+          tags$br()
       ),
 
       checkboxInput("nettoyage_caracteres", "Nettoyage caractères (regex)", value = FALSE),
