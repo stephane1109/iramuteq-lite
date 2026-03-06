@@ -91,7 +91,7 @@ ui <- fluidPage(
   ),
   tags$p(
     style = "font-size: 14px;",
-    "Tentaive de reproduction de la CHD (Méthode Reinert) du logiciel IRaMuTeQ",
+    "Tentaive de reproduction de la CHD du logiciel IRaMuTeQ (Pierre Ratinaud - LERASS)",
     tags$br(),
     "Pour plus d’informations, vous pouvez consulter mon site : www.codeandcortex.fr",
     tags$br(),
@@ -123,7 +123,8 @@ ui <- fluidPage(
       ),
       tags$p(
         style = "color: #d32f2f; font-size: 12px; margin-top: -8px;",
-        "Plus la valeur est élevée, plus les termes rares sont exclus de l'analyse (risque de perdre des informations)."
+        "Dans le logiciel IRaMuTeQ une forme doit avoir au minimum une fréquence de 3 pour être retenue"
+        "Plus la valeur est élevée, plus les termes rares sont exclus de l'analyse."
       ),
       numericInput("max_p", "max_p (p-value)", value = 0.05, min = 0, max = 1, step = 0.01),
       checkboxInput(
