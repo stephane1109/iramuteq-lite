@@ -121,6 +121,10 @@ ui <- fluidPage(
         min = 1,
         step = 1
       ),
+      tags$p(
+        style = "color: #d32f2f; font-size: 12px; margin-top: -8px;",
+        "Plus la valeur est élevée, plus les termes rares sont exclus de l'analyse (risque de perdre des informations)."
+      ),
       numericInput("max_p", "max_p (p-value)", value = 0.05, min = 0, max = 1, step = 0.01),
       checkboxInput(
         "filtrer_affichage_pvalue",
