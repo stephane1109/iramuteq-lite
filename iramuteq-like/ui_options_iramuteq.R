@@ -9,7 +9,13 @@ ui_options_iramuteq <- function() {
     numericInput("k_iramuteq", "Nombre de classes terminales de la phase 1", value = 10, min = 2, step = 1),
     radioButtons(
       "iramuteq_mincl_mode",
-      "Nombre minimum d'UCE par classe terminale (mincl)",
+      tagList(
+        "Nombre minimum d'UCE par classe terminale (mincl)",
+        tags$div(
+          style = "color: #c00; font-size: 0.9em; margin-top: 4px;",
+          "Ce paramètre définit le seuil minimal d'UCE pour conserver une classe terminale."
+        )
+      ),
       choices = c("Automatique" = "auto", "Manuel" = "manuel"),
       selected = "auto",
       inline = FALSE
