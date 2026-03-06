@@ -17,8 +17,8 @@ RUN apt-get update && \
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
 
 
-# ale installé depuis un dépôt CRAN ciblé (avec retry miroir) pour stabiliser l'installation
-RUN R -q -e "repos_ale <- c('https://cloud.r-project.org', 'https://cran.r-project.org'); ok <- FALSE; for (repo in repos_ale) { if (ok) break; try({ install.packages('ale', repos = repo, type = 'source'); ok <- requireNamespace('ale', quietly = TRUE) }, silent = TRUE) }; if (!ok) stop('Installation de ale impossible depuis les dépôts CRAN ciblés.')"
+# ale: tentative CRAN puis repli GitHub (cran/ale) pour éviter les échecs miroir sur Spaces
+RUN R -q -e "repos_ale <- c('https://cloud.r-project.org', 'https://cran.r-project.org'); ok <- FALSE; for (repo in repos_ale) { if (ok) break; try({ install.packages('ale', repos = repo, type = 'source'); ok <- requireNamespace('ale', quietly = TRUE) }, silent = TRUE) }; if (!ok) { try({ remotes::install_github('cran/ale', dependencies = FALSE, upgrade = 'never'); ok <- requireNamespace('ale', quietly = TRUE) }, silent = TRUE) }; if (!ok) stop('Installation de ale impossible (CRAN + GitHub).')"
 
 # FactoMineR depuis GitHub (sans tirer les Suggests)
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
