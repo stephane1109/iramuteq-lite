@@ -980,6 +980,9 @@ register_events_lancer <- function(input, output, session, rv) {
           svd_method_iramuteq <- as.character(input$iramuteq_svd_method)
           if (!svd_method_iramuteq %in% c("irlba", "svdR")) svd_method_iramuteq <- "irlba"
 
+          max_formes_iramuteq <- suppressWarnings(as.integer(input$iramuteq_max_formes))
+          if (is.na(max_formes_iramuteq) || max_formes_iramuteq < 1L) max_formes_iramuteq <- 6000L
+
           ajouter_log(
             rv,
             paste0(
@@ -989,6 +992,7 @@ register_events_lancer <- function(input, output, session, rv) {
               " | classif_mode=", classif_mode_iramuteq,
               if (identical(classif_mode_iramuteq, "double")) paste0(" | rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq) else "",
               " | svd_method=", svd_method_iramuteq,
+              " | max_formes=", max_formes_iramuteq,
               " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
             )
           )
@@ -1001,8 +1005,29 @@ register_events_lancer <- function(input, output, session, rv) {
             classif_mode = classif_mode_iramuteq,
             svd_method = svd_method_iramuteq,
             mode_patate = isTRUE(input$iramuteq_mode_patate),
-            binariser = TRUE
+            binariser = TRUE,
+            max_formes = max_formes_iramuteq
           )
+
+          max_formes_info <- res_ira$max_formes_info
+          if (is.list(max_formes_info) && all(c("max_formes", "n_feat_avant", "n_feat_apres") %in% names(max_formes_info))) {
+            ajouter_log(
+              rv,
+              paste0(
+                "Nombre maximum de formes analysées appliqué (chd_iramuteq.R) = ",
+                max_formes_info$max_formes,
+                " (",
+                max_formes_info$n_feat_avant,
+                " -> ",
+                max_formes_info$n_feat_apres,
+                ")."
+              )
+            )
+          }
+
+          if (!is.null(res_ira$dfm_utilise)) {
+            dfm_obj <- res_ira$dfm_utilise
+          }
 
           if (isTRUE(res_ira$fallback_mincl1)) {
             ajouter_log(
