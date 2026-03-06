@@ -121,8 +121,6 @@ generer_concordancier_iramuteq_html <- function(
   rv = NULL,
   ...
 ) {
-  if (!is.null(rv)) ajouter_log(rv, "Concordancier IRaMuTeQ-like : génération HTML (filtres IRaMuTeQ + surlignage Unicode).")
-
   con <- file(chemin_sortie, open = "wt", encoding = "UTF-8")
   on.exit(try(close(con), silent = TRUE), add = TRUE)
 
@@ -182,12 +180,6 @@ generer_concordancier_iramuteq_html <- function(
     if (length(segments_keep) == 0 && length(segments) > 0) {
       segments_keep <- segments
       ids_keep <- ids_cl
-      if (!is.null(rv)) {
-        ajouter_log(rv, paste0(
-          "Concordancier IRaMuTeQ-like : classe ", cl,
-          " sans segment après filtrage, fallback sur tous les segments."
-        ))
-      }
     }
 
     writeLines(paste0("<p><em>Segments conservés : ", length(segments_keep), " / ", length(segments), "</em></p>"), con)
@@ -212,11 +204,7 @@ generer_concordancier_iramuteq_html <- function(
       motifs,
       "<span class='highlight'>",
       "</span>",
-      on_error = function(e, pat) {
-        if (!is.null(rv)) {
-          ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : erreur regex [", pat, "] - ", conditionMessage(e)))
-        }
-      }
+      on_error = function(e, pat) {}
     )
 
     has_hl <- any(grepl("<span class='highlight'>", segments_hl, fixed = TRUE))
@@ -230,11 +218,7 @@ generer_concordancier_iramuteq_html <- function(
         motifs,
         "<span class='highlight'>",
         "</span>",
-        on_error = function(e, pat) {
-          if (!is.null(rv)) {
-            ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : erreur regex index [", pat, "] - ", conditionMessage(e)))
-          }
-        }
+        on_error = function(e, pat) {}
       )
       if (any(grepl("<span class='highlight'>", segments_hl_idx, fixed = TRUE))) {
         segments_hl <- segments_hl_idx
@@ -253,6 +237,88 @@ generer_concordancier_iramuteq_html <- function(
 
   writeLines("</body></html>", con)
   close(con)
-  if (!is.null(rv)) ajouter_log(rv, paste0("Concordancier IRaMuTeQ-like : HTML écrit dans : ", chemin_sortie))
+  chemin_sortie
+}
+
+generer_concordancier_afc_html <- function(chemin_sortie, afc_table_mots, rv = NULL, max_lignes_par_classe = 100) {
+  if (is.null(afc_table_mots) || nrow(afc_table_mots) == 0) return(NULL)
+
+  df <- afc_table_mots
+  if (!all(c("Terme", "Classe_max") %in% names(df))) return(NULL)
+
+  colonnes <- intersect(c("Terme", "frequency", "chi2", "p_value", "Segment_texte"), names(df))
+  if (length(colonnes) == 0) return(NULL)
+
+  classes <- unique(as.character(df$Classe_max))
+  classes <- classes[!is.na(classes) & nzchar(classes)]
+  classes <- sort(classes)
+  if (length(classes) == 0) return(NULL)
+
+  if (!is.null(rv)) {
+    ajouter_log(rv, "Concordancier IRaMuTeQ-like : génération d'un fallback HTML à partir du concordancier AFC.")
+  }
+
+  con <- file(chemin_sortie, open = "wt", encoding = "UTF-8")
+  on.exit(try(close(con), silent = TRUE), add = TRUE)
+
+  writeLines("<html><head><meta charset='utf-8'/>", con)
+  writeLines("<style>body{font-family:Arial,sans-serif;line-height:1.45;} h2{margin-top:1.2rem;} table{width:100%;border-collapse:collapse;margin-bottom:1rem;} th,td{padding:6px;border-bottom:1px solid #ececec;vertical-align:top;text-align:left;} span.highlight{background-color:yellow;}</style>", con)
+  writeLines("</head><body>", con)
+  writeLines("<h1>Concordancier AFC (fallback IRaMuTeQ-like)</h1>", con)
+
+  for (cl in classes) {
+    sous_df <- df[df$Classe_max == cl, , drop = FALSE]
+    sous_df <- sous_df[, colonnes, drop = FALSE]
+
+    if ("chi2" %in% names(sous_df)) {
+      chi2_vals <- suppressWarnings(as.numeric(sous_df$chi2))
+      sous_df <- sous_df[order(-chi2_vals), , drop = FALSE]
+    }
+    sous_df <- head(sous_df, max(1L, as.integer(max_lignes_par_classe)))
+
+    writeLines(paste0("<h2>Classe ", htmltools::htmlEscape(cl), "</h2>"), con)
+    writeLines("<table><thead><tr>", con)
+    for (col in names(sous_df)) {
+      writeLines(paste0("<th>", htmltools::htmlEscape(col), "</th>"), con)
+    }
+    writeLines("</tr></thead><tbody>", con)
+
+    for (i in seq_len(nrow(sous_df))) {
+      terme_ligne <- if ("Terme" %in% names(sous_df)) as.character(sous_df$Terme[[i]]) else ""
+      writeLines("<tr>", con)
+
+      for (col in names(sous_df)) {
+        val <- sous_df[[col]][[i]]
+        txt <- ifelse(is.na(val), "", as.character(val))
+
+        if (identical(col, "Segment_texte")) {
+          motifs <- preparer_motifs_surlignage_nfd(terme_ligne, taille_lot = 1)
+          if (length(motifs)) {
+            txt <- surligner_vecteur_html_unicode(
+              txt,
+              motifs,
+              "<span class='highlight'>",
+              "</span>"
+            )
+            txt <- echapper_segments_en_preservant_surlignage(txt, "<span class='highlight'>", "</span>")
+          } else {
+            txt <- htmltools::htmlEscape(txt)
+          }
+        } else {
+          txt <- htmltools::htmlEscape(txt)
+        }
+
+        writeLines(paste0("<td>", txt, "</td>"), con)
+      }
+
+      writeLines("</tr>", con)
+    }
+
+    writeLines("</tbody></table>", con)
+  }
+
+  writeLines("</body></html>", con)
+  close(con)
+  if (!is.null(rv)) ajouter_log(rv, paste0("Concordancier AFC (fallback) : HTML écrit dans : ", chemin_sortie))
   chemin_sortie
 }

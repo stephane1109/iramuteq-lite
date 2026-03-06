@@ -317,6 +317,8 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
   total_docs <- nrow(mat_bin)
   docs_par_terme <- colSums(mat_bin)
   occ_par_terme <- colSums(mat)
+  occ_par_classe <- rowsum(rowSums(mat), group = classes, reorder = FALSE)
+  occ_totales <- sum(occ_par_terme)
 
   calc_chi_sign <- function(a, b, c, d) {
     tb <- matrix(c(a, b, c, d), nrow = 2, byrow = TRUE)

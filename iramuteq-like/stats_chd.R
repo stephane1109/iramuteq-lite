@@ -146,7 +146,6 @@ extraire_stats_chd_classe <- function(res_stats_df,
       pourcentage = ifelse(is.na(pourcentage), NA_character_, formatC(pourcentage, format = "f", digits = 2)),
       chi2 = ifelse(is.na(chi2_vals), NA_character_, formatC(chi2_vals, format = "f", digits = 3)),
       `p.value` = ifelse(is.na(p_vals), NA_character_, formatC(p_vals, format = "f", digits = 6)),
-      `p.value < 0.01` = ifelse(!is.na(p_vals) & p_vals < 0.01, "Oui", ""),
       Type = types,
       check.names = FALSE,
       stringsAsFactors = FALSE

@@ -1333,6 +1333,27 @@ register_events_lancer <- function(input, output, session, rv) {
             html_existants <- candidats_retry[file.exists(candidats_retry)]
           }
 
+          if (length(html_existants) == 0 && !is.null(rv$afc_table_mots) && nrow(rv$afc_table_mots) > 0) {
+            html_afc_fallback <- file.path(rv$export_dir, "concordancier_afc.html")
+            ajouter_log(rv, "Concordancier HTML indisponible : tentative de fallback avec le concordancier AFC.")
+            html_afc_genere <- tryCatch(
+              generer_concordancier_afc_html(
+                chemin_sortie = html_afc_fallback,
+                afc_table_mots = rv$afc_table_mots,
+                rv = rv,
+                max_lignes_par_classe = 100
+              ),
+              error = function(e) {
+                ajouter_log(rv, paste0("Concordancier AFC (fallback) : échec - ", e$message))
+                NA_character_
+              }
+            )
+
+            candidats_afc <- unique(c(html_afc_genere, html_afc_fallback))
+            candidats_afc <- candidats_afc[is.character(candidats_afc) & !is.na(candidats_afc) & nzchar(candidats_afc)]
+            html_existants <- candidats_afc[file.exists(candidats_afc)]
+          }
+
           if (length(html_existants) > 0) {
             rv$html_file <- html_existants[[1]]
             ajouter_log(rv, paste0("Concordancier HTML validé : ", rv$html_file))
