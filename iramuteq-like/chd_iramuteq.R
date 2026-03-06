@@ -439,125 +439,41 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
 
     dist_obj <- stats::dist(mat, method = "euclidean")
     if (!inherits(dist_obj, "dist") || length(dist_obj) == 0) return(FALSE)
+
     hc <- stats::hclust(dist_obj, method = "ward.D2")
+    clusternb <- nrow(mat)
+    if (!is.finite(clusternb) || clusternb < 2) return(FALSE)
 
-    classes_obs <- suppressWarnings(as.integer(classes))
-    classes_obs <- classes_obs[is.finite(classes_obs) & classes_obs > 0]
-    pct_par_classe <- if (length(classes_obs)) prop.table(table(classes_obs)) * 100 else NULL
+    # Adaptation directe du principe PlotDendroCut (IRaMuTeQ historique):
+    # 1) découpe en k classes,
+    # 2) reconstruction d'un hclust compact avec members,
+    # 3) tracé horizontal avec nodePar/edgePar.
+    memb <- stats::cutree(hc, k = clusternb)
+    cent <- matrix(seq_len(clusternb), ncol = 1)
+    h_cut <- stats::hclust(stats::dist(cent)^2, method = "centroid", members = as.vector(table(memb)))
+    h_cut$labels <- sprintf("CL %02d", seq_len(clusternb))
 
-    top_n_terms <- suppressWarnings(as.integer(top_n_terms))
-    if (!is.finite(top_n_terms) || is.na(top_n_terms) || top_n_terms < 1L) top_n_terms <- 1L
-
-    termes_chi2 <- vector("list", nrow(mat))
-    if ("chi2" %in% names(df)) {
-      df_chi <- df
-      df_chi$chi2 <- suppressWarnings(as.numeric(df_chi$chi2))
-      for (i in seq_len(nrow(mat))) {
-        cl <- suppressWarnings(as.integer(rownames(mat)[[i]]))
-        sous <- df_chi[df_chi$Classe == cl, , drop = FALSE]
-        if (!nrow(sous)) {
-          termes_chi2[[i]] <- character(0)
-          next
-        }
-        sous <- sous[is.finite(sous$chi2), , drop = FALSE]
-        sous <- sous[order(sous$chi2, decreasing = TRUE), , drop = FALSE]
-        termes <- unique(as.character(sous$Terme))
-        termes <- termes[nzchar(termes)]
-        termes_chi2[[i]] <- utils::head(termes, top_n_terms)
-      }
-    }
-
-    class_labels <- vapply(seq_len(nrow(mat)), function(i) {
-      cl <- as.integer(rownames(mat)[[i]])
-      pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
-      pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
-      paste0("Classe ", cl, pct_txt)
-    }, FUN.VALUE = character(1))
-
-    termes_affiches <- lapply(seq_len(nrow(mat)), function(i) {
-      termes <- termes_chi2[[i]]
-      if (!length(termes)) {
-        ligne <- mat[i, , drop = TRUE]
-        termes <- names(sort(ligne, decreasing = TRUE))
-        termes <- termes[is.finite(ligne[termes]) & ligne[termes] > 0]
-      }
-      utils::head(termes, top_n_terms)
-    })
-
-    hc$labels <- class_labels
-
-    classes_hc <- suppressWarnings(as.integer(rownames(mat)))
-    classes_hc[!is.finite(classes_hc)] <- seq_along(classes_hc)
-
-    palette_classes <- grDevices::hcl.colors(length(unique(classes_hc)), palette = "Dark 3")
-    cols_classes <- stats::setNames(palette_classes, as.character(sort(unique(classes_hc))))
-    tip_cols <- unname(cols_classes[as.character(classes_hc)])
-    tip_cols[!nzchar(tip_cols)] <- "#FFFFFF"
-
-    op <- par(no.readonly = TRUE)
-    on.exit(par(op), add = TRUE)
-    par(bg = "white", fg = "black", col.axis = "black", col.lab = "black")
-
-    tracer_nuage_ligne <- function(x, y, termes, col = "#1f1f1f") {
-      termes <- as.character(termes)
-      termes <- termes[nzchar(termes)]
-      if (!length(termes)) return(invisible(NULL))
-      n <- length(termes)
-      offsets_x <- seq(-0.45, 0.45, length.out = n)
-      offsets_y <- rep(c(0, -0.06, 0.06), length.out = n)
-      tailles <- seq(0.9, 0.65, length.out = n)
-      text(x + offsets_x, y + offsets_y, labels = termes, cex = tailles, col = col, xpd = TRUE)
-      invisible(NULL)
-    }
-
-    if (identical(orientation, "horizontal")) {
-      max_h <- suppressWarnings(max(hc$height, na.rm = TRUE))
-      if (!is.finite(max_h) || max_h <= 0) max_h <- 1
-      xlim_use <- c(0, max_h * 2.2)
-
-      plot(
-        hc,
-        hang = -1,
-        horiz = TRUE,
-        labels = FALSE,
-        cex = 0.75,
-        main = "Dendrogramme CHD",
-        xlab = "",
-        sub = "",
-        xlim = xlim_use
-      )
-
-      tip_y <- match(seq_along(hc$order), hc$order)
-      usr <- par("usr")
-      dx <- usr[[2]] - usr[[1]]
-      x_text <- usr[[1]] + 0.02 * dx
-
-      text(x = x_text, y = tip_y + 0.18, labels = class_labels[hc$order], pos = 4, offset = 0.2, cex = 0.75, col = tip_cols[hc$order], xpd = TRUE)
-      for (i in seq_along(tip_y)) {
-        tracer_nuage_ligne(x = x_text + 0.7, y = tip_y[[i]] - 0.18, termes = termes_affiches[[hc$order[[i]]]], col = tip_cols[hc$order[[i]]])
-      }
-      return(TRUE)
-    }
+    nP <- list(
+      col = 3:2,
+      cex = c(2.0, 0.75),
+      pch = 21:22,
+      bg = c("light blue", "pink"),
+      lab.cex = 0.75,
+      lab.col = "tomato"
+    )
 
     plot(
-      hc,
+      h_cut,
+      nodePar = nP,
+      edgePar = list(col = "gray", lwd = 2),
+      horiz = identical(orientation, "horizontal"),
+      center = TRUE,
       hang = -1,
-      horiz = FALSE,
-      labels = FALSE,
-      cex = 0.75,
       main = "Dendrogramme CHD",
       xlab = "",
       sub = ""
     )
 
-    usr <- par("usr")
-    y_class <- usr[[3]] + 0.08 * (usr[[4]] - usr[[3]])
-    y_words <- usr[[3]] + 0.02 * (usr[[4]] - usr[[3]])
-    x_tips <- seq_along(hc$order)
-    text(x = x_tips, y = y_class, labels = class_labels[hc$order], cex = 0.72, col = tip_cols[hc$order], xpd = TRUE)
-    for (i in seq_along(x_tips)) {
-      tracer_nuage_ligne(x = x_tips[[i]], y = y_words, termes = termes_affiches[[hc$order[[i]]]], col = tip_cols[hc$order[[i]]])
-    }
     TRUE
   }
 
