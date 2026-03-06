@@ -332,7 +332,9 @@ tracer_afc_classes_termes <- function(
   activer_repel = TRUE,
   cex_min = 0.8,
   cex_max = 2.0,
-  repel_max_iter = 220
+  repel_max_iter = 220,
+  xlim_zoom = NULL,
+  ylim_zoom = NULL
 ) {
   if (is.null(obj$ca) || is.null(obj$rowcoord) || is.null(obj$colcoord) || is.null(obj$termes_stats)) {
     stop("AFC : objet incomplet (coordonnées / stats manquantes).")
@@ -369,12 +371,20 @@ tracer_afc_classes_termes <- function(
   y_c <- rc[, ax2]
 
   lim <- calculer_lim_sym(c(x_m, x_c), c(y_m, y_c))
+  xlim_use <- lim
+  ylim_use <- lim
+  if (!is.null(xlim_zoom) && length(xlim_zoom) == 2 && all(is.finite(xlim_zoom))) {
+    xlim_use <- as.numeric(xlim_zoom)
+  }
+  if (!is.null(ylim_zoom) && length(ylim_zoom) == 2 && all(is.finite(ylim_zoom))) {
+    ylim_use <- as.numeric(ylim_zoom)
+  }
   plot(
     0, 0,
     type = "n",
     xlab = paste0("Axe ", ax1),
     ylab = paste0("Axe ", ax2),
-    xlim = lim, ylim = lim
+    xlim = xlim_use, ylim = ylim_use
   )
   abline(h = 0, v = 0, col = "gray80")
 
