@@ -33,9 +33,14 @@
 tracer_dendogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 4,
                                             orientation = "horizontal",
-                                            style_affichage = c("iramuteq_bars", "classique")) {
+                                            style_affichage = c("iramuteq_bars", "classique"),
+                                            edge_style = c("orthogonal", "diagonal"),
+                                            edge_lwd = 2.2) {
   orientation <- match.arg(orientation, c("vertical", "horizontal"))
   style_affichage <- match.arg(style_affichage)
+  edge_style <- match.arg(edge_style)
+  edge_lwd <- suppressWarnings(as.numeric(edge_lwd))
+  if (!is.finite(edge_lwd) || is.na(edge_lwd) || edge_lwd <= 0) edge_lwd <- 2.2
 
   payload <- .extraire_payload_dendrogramme(rv)
 
@@ -53,7 +58,9 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
       res_stats_df = payload$stats,
       top_n_terms = top_n_terms,
       orientation = orientation,
-      style_affichage = style_affichage
+      style_affichage = style_affichage,
+      edge_style = edge_style,
+      edge_lwd = edge_lwd
     )
     TRUE
   }, error = function(e) FALSE)
