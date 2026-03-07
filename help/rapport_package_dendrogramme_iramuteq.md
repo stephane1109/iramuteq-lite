@@ -7,7 +7,7 @@
 - Couleur différente pour chaque classe.
 
 ## Implémentation
-Dans `iramuteq-like/chd_iramuteq.R` :
+Dans `iramuteq-lite/chd_iramuteq.R` :
 
 1. Le tracé reste basé sur `stats::hclust` + `plot` (base R).
 2. Les labels de feuilles sont reconstruits au format :
@@ -16,7 +16,7 @@ Dans `iramuteq-like/chd_iramuteq.R` :
 3. Une palette de couleurs est appliquée par classe et utilisée pour colorer les labels.
 4. Aucun package externe de type `ape`/`plotrix` n'est requis pour ce rendu.
 
-Dans `iramuteq-like/dendrogramme_iramuteq.R` :
+Dans `iramuteq-lite/dendrogramme_iramuteq.R` :
 - la valeur par défaut `top_n_terms` passe à 10.
 
 ## Docker

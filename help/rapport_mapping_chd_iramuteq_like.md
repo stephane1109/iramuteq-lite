@@ -2,14 +2,14 @@
 
 ## 1) État de la branche demandée
 
-- La branche Git locale `iramuteq-like` n'existe pas dans ce dépôt au moment de l'audit (`git branch -a` ne retourne que `work`).
-- L'analyse a donc été réalisée sur le **module fonctionnel `iramuteq-like/`** présent dans la branche courante.
+- La branche Git locale `iramuteq-lite` n'existe pas dans ce dépôt au moment de l'audit (`git branch -a` ne retourne que `work`).
+- L'analyse a donc été réalisée sur le **module fonctionnel `iramuteq-lite/`** présent dans la branche courante.
 
 ## 2) Mapping bout-en-bout: du concordancier au dendrogramme, à l'AFC (nuage de points) et à l'UI
 
 ### 2.1 Concordancier
 
-- **Calcul des termes par classe**: `iramuteq-like/concordancier-iramuteq.R`
+- **Calcul des termes par classe**: `iramuteq-lite/concordancier-iramuteq.R`
   - `.generer_concordancier_iramuteq_termes()`:
     - filtre par classe,
     - filtre p-value (`p` / `p_value`) selon `max_p`,
@@ -23,7 +23,7 @@
 
 ### 2.2 Calcul CHD IRaMuTeQ-like
 
-- **Moteur CHD**: `iramuteq-like/chd_iramuteq.R`
+- **Moteur CHD**: `iramuteq-lite/chd_iramuteq.R`
   - `calculer_chd_iramuteq()`:
     - charge scripts historiques (`anacor.R`, `CHD.R`, `chdtxt.R`),
     - binarise la matrice documentaire,
@@ -39,9 +39,9 @@
 
 ### 2.3 Dendrogramme CHD
 
-- **Entrée UI du dendrogramme**: `iramuteq-like/dendrogramme_iramuteq.R`
+- **Entrée UI du dendrogramme**: `iramuteq-lite/dendrogramme_iramuteq.R`
   - `tracer_dendrogramme_iramuteq_ui()` récupère l'objet CHD (`rv$res$chd`, `rv$res_chd`, fallback) et appelle le traceur principal.
-- **Traceur principal**: `iramuteq-like/chd_iramuteq.R`
+- **Traceur principal**: `iramuteq-lite/chd_iramuteq.R`
   - `tracer_dendrogramme_chd_iramuteq()`:
     - reconstruit la topologie depuis `list_fille`,
     - identifie racine/feuilles terminales,
@@ -51,7 +51,7 @@
 
 ### 2.4 Nuage de points (AFC classes × termes / variables)
 
-- **Calcul AFC**: `iramuteq-like/afc_iramuteq.R`
+- **Calcul AFC**: `iramuteq-lite/afc_iramuteq.R`
   - `calculer_afc_classes_termes()` construit la table classes × termes,
   - `executer_afc_classes_termes()` exécute l'AFC,
   - `tracer_afc_classes_seules()` affiche classes,
@@ -61,12 +61,12 @@
 
 ### 2.5 Nuage de mots par classe
 
-- **Génération assets PNG**: `iramuteq-like/wordcloud_iramuteq.R`
-- **Exposition UI (iframe/img)**: `iramuteq-like/server_events_lancer_iramuteq.R` via `output$ui_wordcloud_iramuteq`.
+- **Génération assets PNG**: `iramuteq-lite/wordcloud_iramuteq.R`
+- **Exposition UI (iframe/img)**: `iramuteq-lite/server_events_lancer_iramuteq.R` via `output$ui_wordcloud_iramuteq`.
 
 ### 2.6 Orchestration serveur (pipeline)
 
-- **Pipeline principal au clic Lancer**: `iramuteq-like/server_events_lancer_iramuteq.R`
+- **Pipeline principal au clic Lancer**: `iramuteq-lite/server_events_lancer_iramuteq.R`
   - préparation corpus,
   - exécution CHD,
   - calcul stats,
@@ -77,7 +77,7 @@
 
 ### 2.7 Couches UI
 
-- **Panneau résultats IRaMuTeQ-like**: `iramuteq-like/affichage_iramuteq-like.R`
+- **Panneau résultats IRaMuTeQ-like**: `iramuteq-lite/affichage_iramuteq-lite.R`
   - sous-onglets Dendrogramme / Stats CHD / Concordancier / Nuage de mots.
 - **Rendu serveur principal Shiny**: `app.R`
   - `output$plot_chd_iramuteq_dendro`,
