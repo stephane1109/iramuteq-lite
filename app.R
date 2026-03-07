@@ -166,6 +166,7 @@ server <- function(input, output, session) {
     exports_prefix = paste0("exports_", session$token),
 
     lexique_fr_df = NULL,
+    expression_fr_df = NULL,
     textes_indexation = NULL,
 
     afc_obj = NULL,

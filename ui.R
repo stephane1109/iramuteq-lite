@@ -150,6 +150,11 @@ ui <- fluidPage(
         condition = "input.source_dictionnaire == 'lexique_fr'",
         checkboxInput("lexique_utiliser_lemmes", "Lemmatisation via les lemmes de lexique_fr (forme → c_lemme)", value = TRUE)
       ),
+      checkboxInput(
+        "expression_utiliser_dictionnaire",
+        "Utiliser le dictionnaire d'expression (dic_mot → dic_norm)",
+        value = FALSE
+      ),
 
       tags$div(class = "sidebar-section-title", "Nettoyage"),
 
