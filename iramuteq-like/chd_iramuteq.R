@@ -495,22 +495,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     h_cut <- stats::hclust(stats::dist(cent)^2, method = "centroid", members = as.vector(table(memb)))
     h_cut$labels <- sprintf("CL %02d", seq_len(clusternb))
 
-    nP <- list(
-      col = 3:2,
-      cex = c(2.0, 0.75),
-      pch = 21:22,
-      bg = c("light blue", "pink"),
-      lab.cex = 0.75,
-      lab.col = "tomato"
-    )
-
+    dend <- stats::as.dendrogram(h_cut)
     plot(
-      h_cut,
-      nodePar = nP,
-      edgePar = list(col = "gray", lwd = 2),
+      dend,
+      type = "rectangle",
       horiz = identical(orientation, "horizontal"),
       center = TRUE,
-      hang = -1,
+      leaflab = "none",
+      edgePar = list(col = "#5f5f5f", lwd = 2.3),
       main = "Dendrogramme CHD",
       xlab = "",
       sub = ""
@@ -728,6 +720,21 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     node_xy[[node_keys[[i]]]] <- c(x = x_vals[[i]], y = y_vals[[i]])
   }
 
+  .draw_tree_edge <- function(x1, y1, x2, y2, mode = c("vertical_tree", "horizontal_tree"), lwd = 2.3, col = "#808080", ...) {
+    mode <- match.arg(mode)
+    if (!is.finite(x1) || !is.finite(y1) || !is.finite(x2) || !is.finite(y2)) return(invisible(NULL))
+
+    if (identical(mode, "vertical_tree")) {
+      segments(x1, y1, x2, y1, lwd = lwd, col = col, ...)
+      segments(x2, y1, x2, y2, lwd = lwd, col = col, ...)
+      return(invisible(NULL))
+    }
+
+    segments(x1, y1, x1, y2, lwd = lwd, col = col, ...)
+    segments(x1, y2, x2, y2, lwd = lwd, col = col, ...)
+    invisible(NULL)
+  }
+
   op <- par(no.readonly = TRUE)
   on.exit(par(op), add = TRUE)
 
@@ -748,7 +755,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      segments(p_xy[["x"]], p_xy[["y"]], c_xy[["x"]], c_xy[["y"]], xpd = TRUE)
+      .draw_tree_edge(
+        x1 = p_xy[["x"]], y1 = p_xy[["y"]],
+        x2 = c_xy[["x"]], y2 = c_xy[["y"]],
+        mode = "vertical_tree",
+        lwd = 2.3,
+        col = "#5f5f5f",
+        xpd = TRUE
+      )
     }
 
     for (tip in names(class_by_tip)) {
@@ -787,7 +801,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
         p_xy <- node_xy[[p_key]]
         c_xy <- node_xy[[c_key]]
         if (is.null(p_xy) || is.null(c_xy)) next
-        segments(p_xy[["y"]], p_xy[["x"]], c_xy[["y"]], c_xy[["x"]], xpd = TRUE)
+        .draw_tree_edge(
+          x1 = p_xy[["y"]], y1 = p_xy[["x"]],
+          x2 = c_xy[["y"]], y2 = c_xy[["x"]],
+          mode = "horizontal_tree",
+          lwd = 2.3,
+          col = "#5f5f5f",
+          xpd = TRUE
+        )
       }
 
       for (tip in names(class_by_tip)) {
@@ -855,7 +876,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      segments(p_xy[["y"]], p_xy[["x"]], c_xy[["y"]], c_xy[["x"]], xpd = TRUE, col = "#808080", lwd = 1.6)
+      .draw_tree_edge(
+        x1 = p_xy[["y"]], y1 = p_xy[["x"]],
+        x2 = c_xy[["y"]], y2 = c_xy[["x"]],
+        mode = "horizontal_tree",
+        col = "#707070",
+        lwd = 2.4,
+        xpd = TRUE
+      )
     }
 
     for (i in seq_along(tip_keys)) {
