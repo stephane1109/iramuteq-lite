@@ -330,7 +330,8 @@ register_events_lancer <- function(input, output, session, rv) {
                                                activer_nettoyage = FALSE,
                                                forcer_minuscules = FALSE,
                                                supprimer_chiffres = FALSE,
-                                               supprimer_apostrophes = FALSE) {
+                                               supprimer_apostrophes = FALSE,
+                                               remplacer_tirets_espaces = FALSE) {
         if (is.null(textes)) return(character(0))
         x <- as.character(textes)
         if (isTRUE(forcer_minuscules)) x <- tolower(x)
@@ -851,7 +852,8 @@ register_events_lancer <- function(input, output, session, rv) {
             activer_nettoyage = isTRUE(input$nettoyage_caracteres),
             forcer_minuscules = isTRUE(input$forcer_minuscules_avant),
             supprimer_chiffres = isTRUE(input$supprimer_chiffres),
-            supprimer_apostrophes = isTRUE(input$supprimer_apostrophes)
+            supprimer_apostrophes = isTRUE(input$supprimer_apostrophes),
+            remplacer_tirets_espaces = isTRUE(input$remplacer_tirets_espaces)
           )
 
           textes_chd <- textes_nettoyes
@@ -897,6 +899,7 @@ register_events_lancer <- function(input, output, session, rv) {
               " | supprimer_ponctuation=", ifelse(isTRUE(input$supprimer_ponctuation), "1", "0"),
               " | supprimer_chiffres=", ifelse(isTRUE(input$supprimer_chiffres), "1", "0"),
               " | supprimer_apostrophes=", ifelse(isTRUE(input$supprimer_apostrophes), "1", "0"),
+              " | remplacer_tirets_espaces=", ifelse(isTRUE(input$remplacer_tirets_espaces), "1", "0"),
               " | nettoyage_caracteres=", ifelse(isTRUE(input$nettoyage_caracteres), "1", "0")
             )
           )

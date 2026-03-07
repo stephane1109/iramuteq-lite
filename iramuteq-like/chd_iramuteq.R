@@ -29,6 +29,7 @@ normaliser_options_nettoyage_iramuteq <- function(options_nettoyage = list()) {
     forcer_minuscules_avant = isTRUE(options_nettoyage$forcer_minuscules_avant),
     supprimer_chiffres = isTRUE(options_nettoyage$supprimer_chiffres),
     supprimer_apostrophes = isTRUE(options_nettoyage$supprimer_apostrophes),
+    remplacer_tirets_espaces = isTRUE(options_nettoyage$remplacer_tirets_espaces),
     supprimer_ponctuation = isTRUE(options_nettoyage$supprimer_ponctuation),
     retirer_stopwords = isTRUE(options_nettoyage$retirer_stopwords)
   )
@@ -61,7 +62,8 @@ preparer_entrees_chd_iramuteq <- function(
                                           activer_nettoyage = FALSE,
                                           forcer_minuscules = FALSE,
                                           supprimer_chiffres = FALSE,
-                                          supprimer_apostrophes = FALSE) {
+                                          supprimer_apostrophes = FALSE,
+                                          remplacer_tirets_espaces = FALSE) {
         x <- as.character(textes)
         if (isTRUE(forcer_minuscules)) x <- tolower(x)
         x
@@ -74,7 +76,8 @@ preparer_entrees_chd_iramuteq <- function(
     activer_nettoyage = opts$nettoyage_caracteres,
     forcer_minuscules = opts$forcer_minuscules_avant,
     supprimer_chiffres = opts$supprimer_chiffres,
-    supprimer_apostrophes = opts$supprimer_apostrophes
+    supprimer_apostrophes = opts$supprimer_apostrophes,
+    remplacer_tirets_espaces = opts$remplacer_tirets_espaces
   )
 
   if (!requireNamespace("quanteda", quietly = TRUE)) {
