@@ -37,7 +37,7 @@ WORKDIR /home/user/app
 
 COPY . /home/user/app
 
-RUN chown -R user:user /home/user/app
+RUN chown -R "$(id -u user):$(id -g user)" /home/user/app
 
 USER user
 EXPOSE 7860
