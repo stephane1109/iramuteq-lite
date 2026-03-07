@@ -32,7 +32,7 @@
 
 tracer_dendogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 4,
-                                            orientation = "horizontal",
+                                            orientation = "vertical",
                                             style_affichage = c("iramuteq_bars", "classique")) {
   orientation <- match.arg(orientation, c("vertical", "horizontal"))
   style_affichage <- match.arg(style_affichage)

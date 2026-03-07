@@ -421,7 +421,7 @@ server <- function(input, output, session) {
     tracer_dendogramme_iramuteq_ui(
       rv = rv,
       top_n_terms = 4,
-      orientation = "horizontal",
+      orientation = "vertical",
       style_affichage = "iramuteq_bars"
     )
   })
