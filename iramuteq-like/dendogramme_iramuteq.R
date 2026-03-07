@@ -1,4 +1,6 @@
 # Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-like.
+# Ce fichier pilote le mode d'affichage; le rendu graphique bas niveau est implémenté
+# dans `tracer_dendrogramme_chd_iramuteq()` (fichier chd_iramuteq.R).
 
 .extraire_payload_dendrogramme <- function(rv) {
   if (is.null(rv)) return(list(chd = NULL, terminales = NULL, classes = NULL, stats = NULL))
@@ -30,8 +32,10 @@
 
 tracer_dendogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 4,
-                                            orientation = "horizontal") {
+                                            orientation = "horizontal",
+                                            style_affichage = c("iramuteq_bars", "classique")) {
   orientation <- match.arg(orientation, c("vertical", "horizontal"))
+  style_affichage <- match.arg(style_affichage)
 
   payload <- .extraire_payload_dendrogramme(rv)
 
@@ -48,7 +52,8 @@ tracer_dendogramme_iramuteq_ui <- function(rv,
       classes = payload$classes,
       res_stats_df = payload$stats,
       top_n_terms = top_n_terms,
-      orientation = orientation
+      orientation = orientation,
+      style_affichage = style_affichage
     )
     TRUE
   }, error = function(e) FALSE)
