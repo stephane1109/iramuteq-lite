@@ -16,7 +16,7 @@ Dans `iramuteq-like/chd_iramuteq.R` :
 3. Une palette de couleurs est appliquée par classe et utilisée pour colorer les labels.
 4. Aucun package externe de type `ape`/`plotrix` n'est requis pour ce rendu.
 
-Dans `iramuteq-like/dendogramme_iramuteq.R` :
+Dans `iramuteq-like/dendrogramme_iramuteq.R` :
 - la valeur par défaut `top_n_terms` passe à 10.
 
 ## Docker
