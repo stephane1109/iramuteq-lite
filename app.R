@@ -6,8 +6,12 @@
 #                                                                             #
 ###############################################################################
 
-library(shiny)
-library(htmltools)
+if (!"package:shiny" %in% search()) {
+  suppressPackageStartupMessages(require(shiny, quietly = TRUE, warn.conflicts = FALSE))
+}
+if (!"package:htmltools" %in% search()) {
+  suppressPackageStartupMessages(require(htmltools, quietly = TRUE, warn.conflicts = FALSE))
+}
 
 charger_package_optionnel <- function(pkg) {
   ok <- suppressWarnings(
@@ -24,7 +28,6 @@ packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, cha
 
 options(shiny.maxRequestSize = 300 * 1024^2)
 options(shinygadgets.viewer = shiny::browserViewer())
-options(bspm.sudo = TRUE)
 # Force une barre de progression non modale (notification) afin d'éviter
 # le voile gris bloquant avec certaines versions/configurations de Shiny.
 options(shiny.progress.style = "notification")
