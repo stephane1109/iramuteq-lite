@@ -29,18 +29,18 @@ options(bspm.sudo = TRUE)
 # le voile gris bloquant avec certaines versions/configurations de Shiny.
 options(shiny.progress.style = "notification")
 
-if (file.exists("help.md")) {
+if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
       tags$h2("Aide"),
-      includeMarkdown("help.md")
+      includeMarkdown("help/help.md")
     )
   }
 } else {
   ui_aide_huggingface <- function() {
     tagList(
       tags$h2("Aide"),
-      tags$p("Le fichier help.md est introuvable. Ajoute help.md à la racine du projet.")
+      tags$p("Le fichier help/help.md est introuvable. Vérifie le dossier d'aide du projet.")
     )
   }
 }

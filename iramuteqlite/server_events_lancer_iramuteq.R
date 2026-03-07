@@ -319,7 +319,7 @@ register_events_lancer <- function(input, output, session, rv) {
     }
 
     if (!exists("appliquer_nettoyage_iramuteq", mode = "function", inherits = TRUE)) {
-      chemin_nettoyage_iramuteq <- file.path(app_dir, "iramuteq-lite", "nettoyage_iramuteq.R")
+      chemin_nettoyage_iramuteq <- file.path(app_dir, "iramuteqlite", "nettoyage_iramuteq.R")
       if (file.exists(chemin_nettoyage_iramuteq)) {
         source(chemin_nettoyage_iramuteq, encoding = "UTF-8", local = TRUE)
       }
@@ -961,8 +961,8 @@ register_events_lancer <- function(input, output, session, rv) {
             rv$stats_corpus_df <- stats_corpus$table
             rv$stats_zipf_df <- stats_corpus$zipf
           }
-          ajouter_log(rv, "IRaMuTeQ-like: préparation texte exécutée via iramuteq-lite/nettoyage_iramuteq.R")
-          ajouter_log(rv, "IRaMuTeQ-like: paramètres CHD/DFM (min_docfreq, stopwords, ponctuation, dictionnaire) appliqués dans iramuteq-lite/server_events_lancer_iramuteq.R")
+          ajouter_log(rv, "IRaMuTeQ-like: préparation texte exécutée via iramuteqlite/nettoyage_iramuteq.R")
+          ajouter_log(rv, "IRaMuTeQ-like: paramètres CHD/DFM (min_docfreq, stopwords, ponctuation, dictionnaire) appliqués dans iramuteqlite/server_events_lancer_iramuteq.R")
 
           source_dictionnaire <- "lexique_fr"
 
