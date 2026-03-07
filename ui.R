@@ -19,7 +19,7 @@ if (!exists("ui_options_iramuteq", mode = "function", inherits = TRUE)) {
 if (!exists("ui_resultats_chd_iramuteq", mode = "function", inherits = TRUE)) {
   app_dir <- tryCatch(shiny::getShinyOption("appDir"), error = function(e) NULL)
   if (is.null(app_dir) || !nzchar(app_dir)) app_dir <- getwd()
-  chemin_affichage_iramuteq <- file.path(app_dir, "iramuteqlite", "affichage_iramuteq-lite.R")
+  chemin_affichage_iramuteq <- file.path(app_dir, "iramuteqlite", "affichage_iramuteqlite.R")
 
   if (file.exists(chemin_affichage_iramuteq)) {
     source(chemin_affichage_iramuteq, encoding = "UTF-8", local = TRUE)
