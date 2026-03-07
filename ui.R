@@ -266,7 +266,7 @@ ui <- fluidPage(
         ui_resultats_chd_iramuteq(),
 
         tabPanel(
-          "Prévisu corpus",
+          "Affichage corpus",
           tags$h3("Corpus importé"),
           uiOutput("ui_corpus_preview")
         ),
@@ -278,7 +278,7 @@ ui <- fluidPage(
           uiOutput("ui_afc_statut"),
           uiOutput("ui_afc_erreurs"),
 
-          tags$h4("AFC des classes (Représentation des classes)"),
+          tags$h4("AFC des classes"),
           plotOutput("plot_afc_classes", height = "620px"),
 
           tags$h4("AFC des termes"),
