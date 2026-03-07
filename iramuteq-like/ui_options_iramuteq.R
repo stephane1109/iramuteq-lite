@@ -5,7 +5,7 @@ library(shiny)
 
 ui_options_iramuteq <- function() {
   tagList(
-    tags$div(class = "sidebar-section-title", "Paramètres CHD (IRaMuTeQ-like)"),
+    tags$div(class = "sidebar-section-title", "Paramètres CHD (IRaMuTeQ-lite)"),
     numericInput("k_iramuteq", "Nombre de classes terminales de la phase 1", value = 10, min = 2, step = 1),
     numericInput(
       "iramuteq_max_formes",
