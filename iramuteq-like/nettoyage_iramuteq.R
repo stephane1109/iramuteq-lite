@@ -6,7 +6,8 @@ appliquer_nettoyage_iramuteq <- function(textes,
                                          activer_nettoyage = FALSE,
                                          forcer_minuscules = FALSE,
                                          supprimer_chiffres = FALSE,
-                                         supprimer_apostrophes = FALSE) {
+                                         supprimer_apostrophes = FALSE,
+                                         remplacer_tirets_espaces = FALSE) {
   x <- as.character(textes)
   if (length(x) == 0) return(character(0))
 
@@ -14,6 +15,10 @@ appliquer_nettoyage_iramuteq <- function(textes,
 
   if (isTRUE(supprimer_chiffres)) {
     x <- gsub("[0-9]+", " ", x, perl = TRUE)
+  }
+
+  if (isTRUE(remplacer_tirets_espaces)) {
+    x <- gsub("-", " ", x, fixed = TRUE)
   }
 
   if (isTRUE(supprimer_apostrophes)) {

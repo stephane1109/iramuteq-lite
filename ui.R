@@ -169,6 +169,7 @@ ui <- fluidPage(
       tags$small("Supprime la ponctuation à la tokenisation quanteda (remove_punct), par ex. . , ; : ! ? ' ’ \" - ( ) [ ] …"),
       checkboxInput("supprimer_chiffres", "Supprimer les chiffres (0-9)", value = FALSE),
       checkboxInput("supprimer_apostrophes", "Traiter les élisions FR (c'est→est, m'écrire→écrire)", value = FALSE),
+      checkboxInput("remplacer_tirets_espaces", "Remplacer les tirets (-) par des espaces", value = FALSE),
       checkboxInput("retirer_stopwords", "Retirer les stopwords (liste française quanteda)", value = FALSE),
       tags$small("La normalisation en minuscules est appliquée automatiquement avant la construction du DFM."),
       checkboxInput("filtrage_morpho", "Filtrage morphosyntaxique", value = FALSE),
