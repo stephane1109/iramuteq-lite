@@ -535,25 +535,9 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
   if (is.null(noms) || any(!nzchar(noms))) noms <- as.character(seq_along(list_fille))
   map_filles <- stats::setNames(lapply(list_fille, function(x) as.integer(x)), noms)
 
-  classes_utiles <- integer(0)
-  if (!is.null(res_stats_df) && is.data.frame(res_stats_df) && "Classe" %in% names(res_stats_df)) {
-    classes_stats <- suppressWarnings(as.integer(res_stats_df$Classe))
-    classes_stats <- classes_stats[is.finite(classes_stats) & classes_stats > 0]
-    classes_utiles <- sort(unique(classes_stats))
-  }
-  if (!length(classes_utiles) && !is.null(classes)) {
-    classes_int <- suppressWarnings(as.integer(classes))
-    classes_int <- classes_int[is.finite(classes_int) & classes_int > 0]
-    classes_utiles <- sort(unique(classes_int))
-  }
-
   terminales <- suppressWarnings(as.integer(terminales))
-  terminales <- unique(terminales[is.finite(terminales)])
-  if (length(classes_utiles) && length(terminales)) {
-    keep <- classes_utiles >= 1L & classes_utiles <= length(terminales)
-    classes_utiles <- classes_utiles[keep]
-    terminales <- terminales[classes_utiles]
-  }
+  terminales <- terminales[is.finite(terminales)]
+  terminales <- unique(terminales)
 
   edges_df <- do.call(rbind, lapply(names(map_filles), function(mere_name) {
     mere <- suppressWarnings(as.integer(mere_name))
@@ -580,22 +564,27 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     return(invisible(NULL))
   }
 
+  # Conserver toutes les feuilles détectées pour le placement du tree,
+  # sinon certaines branches peuvent disparaître si `terminales` est incomplet.
   tip_nodes <- detected_tips
-  if (length(terminales)) {
-    term_tips <- terminales[terminales %in% detected_tips]
-    if (length(term_tips)) tip_nodes <- unique(term_tips)
-  }
 
+  # Les classes affichées restent strictement celles des terminales CHD.
+  # On n'invente pas de classes de fallback pour préserver la fidélité au découpage.
   class_by_tip <- stats::setNames(rep(NA_integer_, length(tip_nodes)), as.character(tip_nodes))
   if (length(terminales)) {
-    class_ids <- if (length(classes_utiles) == length(terminales)) classes_utiles else seq_along(terminales)
+    # Les identifiants de classes suivent la numérotation CHD (ordre des terminales).
+    class_ids <- seq_along(terminales)
     for (i in seq_along(terminales)) {
       node <- as.character(terminales[[i]])
       if (node %in% names(class_by_tip)) class_by_tip[[node]] <- class_ids[[i]]
     }
   }
-  fallback <- which(!is.finite(class_by_tip))
-  if (length(fallback)) class_by_tip[fallback] <- seq_along(fallback)
+  class_tip_keys <- names(class_by_tip)[is.finite(class_by_tip)]
+  if (!length(class_tip_keys)) {
+    # Repli minimal si l'objet CHD ne fournit pas de mapping terminales exploitable.
+    class_by_tip[] <- seq_along(class_by_tip)
+    class_tip_keys <- names(class_by_tip)
+  }
 
   pct_par_classe <- NULL
   if (!is.null(classes)) {
@@ -631,7 +620,7 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     df_terms <- res_stats_df
     df_terms$Classe <- suppressWarnings(as.integer(df_terms$Classe))
     df_terms <- df_terms[is.finite(df_terms$Classe) & nzchar(as.character(df_terms$Terme)), , drop = FALSE]
-    for (cl in unique(class_by_tip)) {
+    for (cl in unique(as.integer(class_by_tip[class_tip_keys]))) {
       sous <- df_terms[df_terms$Classe == cl, , drop = FALSE]
       if (!nrow(sous)) next
       if ("chi2" %in% names(sous)) {
@@ -645,7 +634,7 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     }
   }
 
-  tip_label <- vapply(names(class_by_tip), function(node) {
+  tip_label <- vapply(class_tip_keys, function(node) {
     cl <- class_by_tip[[node]]
     pct <- if (!is.null(pct_par_classe)) suppressWarnings(as.numeric(pct_par_classe[[as.character(cl)]])) else NA_real_
     pct_txt <- if (is.finite(pct)) paste0(" (", format(round(pct, 1), nsmall = 1), " %)") else ""
@@ -770,7 +759,7 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       )
     }
 
-    for (tip in names(class_by_tip)) {
+    for (tip in class_tip_keys) {
       xy <- node_xy[[tip]]
       if (is.null(xy)) next
       lignes <- strsplit(tip_label[[tip]], "\n", fixed = TRUE)[[1]]
@@ -816,7 +805,7 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
         )
       }
 
-      for (tip in names(class_by_tip)) {
+      for (tip in class_tip_keys) {
         xy <- node_xy[[tip]]
         if (is.null(xy)) next
         lignes <- strsplit(tip_label[[tip]], "\n", fixed = TRUE)[[1]]
@@ -838,7 +827,7 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
 
     par(mar = c(1, 1, 3, 1))
 
-    tip_keys <- names(class_by_tip)
+    tip_keys <- class_tip_keys
     tip_pos <- vapply(tip_keys, function(k) {
       xy <- node_xy[[k]]
       if (is.null(xy)) return(NA_real_)
