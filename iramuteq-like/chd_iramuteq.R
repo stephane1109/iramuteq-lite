@@ -113,8 +113,8 @@ preparer_entrees_chd_iramuteq <- function(
   scripts <- c("anacor.R", "CHD.R", "chdtxt.R")
   candidats_bruts <- unique(c(
     base_dir,
-    "iramuteq-like",
-    file.path(getwd(), "iramuteq-like")
+    "iramuteq-lite",
+    file.path(getwd(), "iramuteq-lite")
   ))
   candidats <- candidats_bruts[
     !is.na(candidats_bruts) &

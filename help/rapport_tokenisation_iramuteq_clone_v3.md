@@ -1,10 +1,10 @@
-# Rapport ciblé — chaîne de tokenisation `iramuteq_clone_v3` et pipeline `iramuteq-like`
+# Rapport ciblé — chaîne de tokenisation `iramuteq_clone_v3` et pipeline `iramuteq-lite`
 
 ## Contexte
 
 Ce rapport répond à deux points :
 1. Auditer **la chaîne de tokenisation** du dossier `iramuteq_clone_v3`.
-2. Vérifier, côté application actuelle, le mode **`iramuteq-like`** (qui force `lexique_fr`) sans analyse spaCy.
+2. Vérifier, côté application actuelle, le mode **`iramuteq-lite`** (qui force `lexique_fr`) sans analyse spaCy.
 
 ---
 
@@ -43,9 +43,9 @@ Dans `Rscripts/chdtxt.R`, si `mincl == 0`, la formule automatique est :
 
 ---
 
-## 2) Pipeline **réel** utilisé par ton application `iramuteq-like` (sans spaCy)
+## 2) Pipeline **réel** utilisé par ton application `iramuteq-lite` (sans spaCy)
 
-Tu as raison : en mode `iramuteq-like`, la source est forcée sur `lexique_fr`.
+Tu as raison : en mode `iramuteq-lite`, la source est forcée sur `lexique_fr`.
 
 ### 2.1 Forçage `lexique_fr`
 Dans `server_events_lancer.R`, si `modele_chd == "iramuteq"`, la source dictionnaire est forcée à `lexique_fr` avec log explicite.【F:R/server_events_lancer.R†L314-L317】
@@ -68,19 +68,19 @@ Dans `executer_pipeline_lexique` :
 ### 2.4 Option de normalisation en minuscules au niveau DFM
 La fonction `construire_dfm_avec_fallback_stopwords(...)` applique `tokens_tolower(...)` (avec ou sans retrait stopwords), donc la représentation finale est normalisée en minuscules côté DFM.【F:R/chd_afc_pipeline.R†L63-L70】
 
-### 2.5 Option de préparation spécifique `iramuteq-like`
-Le module `iramuteq-like/chd_iramuteq.R` normalise explicitement les options de nettoyage suivantes :
+### 2.5 Option de préparation spécifique `iramuteq-lite`
+Le module `iramuteq-lite/chd_iramuteq.R` normalise explicitement les options de nettoyage suivantes :
 - `nettoyage_caracteres`,
 - `forcer_minuscules_avant`,
 - `supprimer_chiffres`,
 - `supprimer_apostrophes`,
 - `supprimer_ponctuation`,
 - `retirer_stopwords`.
-Puis tokenise avec `quanteda::tokens(remove_punct, remove_numbers)` et option stopwords quanteda selon langue.【F:iramuteq-like/chd_iramuteq.R†L26-L33】【F:iramuteq-like/chd_iramuteq.R†L80-L89】
+Puis tokenise avec `quanteda::tokens(remove_punct, remove_numbers)` et option stopwords quanteda selon langue.【F:iramuteq-lite/chd_iramuteq.R†L26-L33】【F:iramuteq-lite/chd_iramuteq.R†L80-L89】
 
 ---
 
-## 3) Rapport des options actives (mode `iramuteq-like`)
+## 3) Rapport des options actives (mode `iramuteq-lite`)
 
 ### 3.1 Options effectivement actives dans ta chaîne (et où)
 
@@ -131,13 +131,13 @@ Et ajouter un export intermédiaire (tokens par segment) pour expliquer où appa
 ## 6) Corrections concrètes recommandées pour rapprocher les scores
 
 1. **Figer une prépa corpus unique avant `quanteda::tokens`**
-   - Utiliser `iramuteq-like/textprepa_iramuteq.py` pour générer un texte préparé stable et auditable (mêmes règles à chaque run), puis tokeniser ce texte côté R.
+   - Utiliser `iramuteq-lite/textprepa_iramuteq.py` pour générer un texte préparé stable et auditable (mêmes règles à chaque run), puis tokeniser ce texte côté R.
 
 2. **Éviter les doubles effets de nettoyage**
-   - Si `iramuteq-like/textprepa_iramuteq.py` est activé, neutraliser le nettoyage redondant en amont pour ne pas supprimer deux fois chiffres/élisions.
+   - Si `iramuteq-lite/textprepa_iramuteq.py` est activé, neutraliser le nettoyage redondant en amont pour ne pas supprimer deux fois chiffres/élisions.
 
 3. **Comparer les formes à 3 niveaux**
-   - Niveau A: formes post-prépa (sortie `output_tokens` de `iramuteq-like/textprepa_iramuteq.py`),
+   - Niveau A: formes post-prépa (sortie `output_tokens` de `iramuteq-lite/textprepa_iramuteq.py`),
    - Niveau B: formes post-`quanteda::tokens`,
    - Niveau C: formes post-`dfm_trim`.
 
