@@ -5,6 +5,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_BSPM_DISABLE=true
+ENV BSPM_DISABLE=true
 ENV R_LIBS_USER=/usr/local/lib/R/site-library
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
@@ -37,7 +38,7 @@ WORKDIR /home/user/app
 
 COPY . /home/user/app
 
-RUN chown -R user:user /home/user/app
+RUN chown -R "$(id -u user):$(id -g user)" /home/user/app
 
 USER user
 EXPOSE 7860
