@@ -7,10 +7,13 @@
 ###############################################################################
 
 if (!"package:shiny" %in% search()) {
-  suppressPackageStartupMessages(require(shiny, quietly = TRUE, warn.conflicts = FALSE))
+  # shiny::runApp() charge déjà l'espace de noms shiny ; on l'attache ici
+  # sans repasser par require()/library() pour éviter certains environnements
+  # où l'énumération des bibliothèques peut échouer au démarrage.
+  attachNamespace(asNamespace("shiny"))
 }
-if (!"package:htmltools" %in% search()) {
-  suppressPackageStartupMessages(require(htmltools, quietly = TRUE, warn.conflicts = FALSE))
+if (!"package:htmltools" %in% search() && isNamespaceLoaded("htmltools")) {
+  attachNamespace(asNamespace("htmltools"))
 }
 
 charger_package_optionnel <- function(pkg) {
