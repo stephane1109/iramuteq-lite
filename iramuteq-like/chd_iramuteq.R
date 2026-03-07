@@ -335,7 +335,7 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
   if (nrow(mat) < 2 || ncol(mat) < 1) return(data.frame())
 
   # Alignement avec l'approche IRaMuTeQ historique (BuildProf):
-  # - contingence en occurrences de formes (et non présence documentaire)
+  # - contingence documentaire (présence/absence de la forme par segment)
   # - chi2 signé (sur/sous-représentation)
   # - p-value issue de chisq.test(..., correct = FALSE)
   mat_bin <- ifelse(mat > 0, 1L, 0L)
@@ -373,20 +373,15 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
     docs_terme_cl <- colSums(mat_bin[in_cl, , drop = FALSE])
     docs_terme_hors <- pmax(0, docs_par_terme - docs_terme_cl)
 
-    occ_terme_cl <- colSums(mat[in_cl, , drop = FALSE])
-    occ_terme_hors <- pmax(0, occ_par_terme - occ_terme_cl)
-    occ_classe <- as.numeric(occ_par_classe[as.character(cl), 1, drop = TRUE])
-    occ_hors_classe <- pmax(0, occ_totales - occ_classe)
-
-    # Tableau 2x2 en occurrences:
-    # [1,1] occurrences du terme dans la classe
-    # [1,2] occurrences du terme hors classe
-    # [2,1] autres occurrences dans la classe
-    # [2,2] autres occurrences hors classe
-    n11 <- as.numeric(occ_terme_cl)
-    n12 <- as.numeric(occ_terme_hors)
-    n21 <- as.numeric(pmax(0, occ_classe - occ_terme_cl))
-    n22 <- as.numeric(pmax(0, occ_hors_classe - occ_terme_hors))
+    # Tableau 2x2 en présence documentaire:
+    # [1,1] segments de la classe contenant la forme
+    # [1,2] segments hors classe contenant la forme
+    # [2,1] segments de la classe sans la forme
+    # [2,2] segments hors classe sans la forme
+    n11 <- as.numeric(docs_terme_cl)
+    n12 <- as.numeric(docs_terme_hors)
+    n21 <- as.numeric(pmax(0, docs_cl - docs_terme_cl))
+    n22 <- as.numeric(pmax(0, (total_docs - docs_cl) - docs_terme_hors))
 
     chi_p <- t(mapply(calc_chi_sign, n11, n12, n21, n22))
 
@@ -411,15 +406,15 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
       lr = as.numeric(lr),
       frequency = as.numeric(freq_cl),
       docprop = as.numeric(docprop_cl),
-      # Alignement IRaMuTeQ: les colonnes d'effectifs affichées en table
-      # correspondent aux occurrences (et non au nombre de segments contenant le terme).
-      # Ex.: "23/46" signifie 23 occurrences dans la classe sur 46 occurrences au total.
-      eff_st = as.numeric(freq_cl),
-      eff_total = as.numeric(occ_par_terme),
-      pourcentage = as.numeric(ifelse(occ_par_terme > 0, 100 * freq_cl / occ_par_terme, 0)),
-      # Colonnes documentaires conservées pour diagnostic (chi2 calculé sur présence/absence doc).
-      eff_docs_st = as.numeric(docs_terme_cl),
-      eff_docs_total = as.numeric(docs_par_terme),
+      # Alignement IRaMuTeQ: les effectifs affichés sont documentaires
+      # (nombre de segments contenant la forme dans la classe / au total).
+      # Ex.: "23/46" signifie 23 segments de la classe sur 46 segments du corpus classé.
+      eff_st = as.numeric(docs_terme_cl),
+      eff_total = as.numeric(docs_par_terme),
+      pourcentage = as.numeric(ifelse(docs_par_terme > 0, 100 * docs_terme_cl / docs_par_terme, 0)),
+      # Colonnes en occurrences conservées pour diagnostic.
+      eff_occ_st = as.numeric(freq_cl),
+      eff_occ_total = as.numeric(occ_par_terme),
       p = as.numeric(chi_p[, "p"]),
       Classe = as.integer(cl),
       stringsAsFactors = FALSE
