@@ -730,13 +730,13 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     if (!is.finite(x1) || !is.finite(y1) || !is.finite(x2) || !is.finite(y2)) return(invisible(NULL))
 
     if (identical(mode, "vertical_tree")) {
-      segments(x1, y1, x1, y2, lwd = lwd, col = col, ...)
-      segments(x1, y2, x2, y2, lwd = lwd, col = col, ...)
+      segments(x1, y1, x2, y1, lwd = lwd, col = col, ...)
+      segments(x2, y1, x2, y2, lwd = lwd, col = col, ...)
       return(invisible(NULL))
     }
 
-    segments(x1, y1, x2, y1, lwd = lwd, col = col, ...)
-    segments(x2, y1, x2, y2, lwd = lwd, col = col, ...)
+    segments(x1, y1, x1, y2, lwd = lwd, col = col, ...)
+    segments(x1, y2, x2, y2, lwd = lwd, col = col, ...)
     invisible(NULL)
   }
 
