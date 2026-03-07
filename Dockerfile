@@ -5,6 +5,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_BSPM_DISABLE=true
+ENV BSPM_DISABLE=true
 ENV R_LIBS_USER=/usr/local/lib/R/site-library
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
