@@ -3,7 +3,7 @@
 # les classes terminales avec mincl (auto ou manuel).
 
 .obtenir_fonction_iramuteq <- function(nom_fonction,
-                                       chemin_module = "iramuteq-lite/chd_iramuteq.R",
+                                       chemin_module = "iramuteqlite/chd_iramuteq.R",
                                        env = parent.frame()) {
   fn <- get0(nom_fonction, mode = "function", inherits = TRUE)
   if (!is.null(fn)) return(fn)
@@ -36,20 +36,20 @@
 
   candidats <- unique(c(
     chemin_module,
-    file.path("iramuteq-lite", "chd_iramuteq.R"),
-    file.path("iramuteq-lite", "chd_iramuteq_like.R"),
-    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteq-lite", "chd_iramuteq_compat.R") else "",
-    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteq-lite", "chd_iramuteq.R") else "",
-    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteq-lite", "chd_iramuteq.R") else "",
-    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteq-lite", "chd_iramuteq_compat.R") else "",
-    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteq-lite", "chd_iramuteq.R") else "",
-    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteq-lite", "chd_iramuteq.R") else "",
-    file.path(".", "iramuteq-lite", "chd_iramuteq_compat.R"),
-    file.path(".", "iramuteq-lite", "chd_iramuteq.R"),
-    file.path(".", "iramuteq-lite", "chd_iramuteq.R"),
-    file.path(getwd(), "iramuteq-lite", "chd_iramuteq_compat.R"),
-    file.path(getwd(), "iramuteq-lite", "chd_iramuteq.R"),
-    file.path(getwd(), "iramuteq-lite", "chd_iramuteq.R")
+    file.path("iramuteqlite", "chd_iramuteq.R"),
+    file.path("iramuteqlite", "chd_iramuteq_like.R"),
+    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteqlite", "chd_iramuteq_compat.R") else "",
+    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteqlite", "chd_iramuteq.R") else "",
+    if (nzchar(racine_depuis_fichier)) file.path(racine_depuis_fichier, "iramuteqlite", "chd_iramuteq.R") else "",
+    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteqlite", "chd_iramuteq_compat.R") else "",
+    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteqlite", "chd_iramuteq.R") else "",
+    if (!is.null(racine_projet) && nzchar(racine_projet)) file.path(racine_projet, "iramuteqlite", "chd_iramuteq.R") else "",
+    file.path(".", "iramuteqlite", "chd_iramuteq_compat.R"),
+    file.path(".", "iramuteqlite", "chd_iramuteq.R"),
+    file.path(".", "iramuteqlite", "chd_iramuteq.R"),
+    file.path(getwd(), "iramuteqlite", "chd_iramuteq_compat.R"),
+    file.path(getwd(), "iramuteqlite", "chd_iramuteq.R"),
+    file.path(getwd(), "iramuteqlite", "chd_iramuteq.R")
   ))
   candidats <- candidats[!is.na(candidats) & nzchar(candidats)]
 
