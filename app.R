@@ -100,21 +100,21 @@ generer_table_html_afc_mots <- function(df) {
   )
 }
 
-source("iramuteq-lite/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/afc_helpers_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/affichage_iramuteq-lite.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/afc_helpers_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/affichage_iramuteq-lite.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("ui.R", encoding = "UTF-8", local = TRUE)
 
-source("iramuteq-lite/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/dendrogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/stats_chd.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-lite/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/dendrogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/stats_chd.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
 
 server <- function(input, output, session) {
 
