@@ -8,7 +8,7 @@ library(htmltools)
 if (!exists("ui_options_iramuteq", mode = "function", inherits = TRUE)) {
   app_dir <- tryCatch(shiny::getShinyOption("appDir"), error = function(e) NULL)
   if (is.null(app_dir) || !nzchar(app_dir)) app_dir <- getwd()
-  chemin_options_iramuteq <- file.path(app_dir, "iramuteq-lite", "ui_options_iramuteq.R")
+  chemin_options_iramuteq <- file.path(app_dir, "iramuteqlite", "ui_options_iramuteq.R")
 
   if (file.exists(chemin_options_iramuteq)) {
     source(chemin_options_iramuteq, encoding = "UTF-8", local = TRUE)
@@ -19,7 +19,7 @@ if (!exists("ui_options_iramuteq", mode = "function", inherits = TRUE)) {
 if (!exists("ui_resultats_chd_iramuteq", mode = "function", inherits = TRUE)) {
   app_dir <- tryCatch(shiny::getShinyOption("appDir"), error = function(e) NULL)
   if (is.null(app_dir) || !nzchar(app_dir)) app_dir <- getwd()
-  chemin_affichage_iramuteq <- file.path(app_dir, "iramuteq-lite", "affichage_iramuteq-lite.R")
+  chemin_affichage_iramuteq <- file.path(app_dir, "iramuteqlite", "affichage_iramuteq-lite.R")
 
   if (file.exists(chemin_affichage_iramuteq)) {
     source(chemin_affichage_iramuteq, encoding = "UTF-8", local = TRUE)
@@ -47,7 +47,7 @@ if (!exists("ui_aide_huggingface", mode = "function")) {
 if (!exists("REGEX_CARACTERES_A_SUPPRIMER", inherits = TRUE)) {
   app_dir <- tryCatch(shiny::getShinyOption("appDir"), error = function(e) NULL)
   if (is.null(app_dir) || !nzchar(app_dir)) app_dir <- getwd()
-  chemin_nettoyage <- file.path(app_dir, "iramuteq-lite", "nettoyage_iramuteq.R")
+  chemin_nettoyage <- file.path(app_dir, "iramuteqlite", "nettoyage_iramuteq.R")
 
   if (file.exists(chemin_nettoyage)) {
     source(chemin_nettoyage, encoding = "UTF-8", local = TRUE)
@@ -162,7 +162,7 @@ ui <- fluidPage(
         condition = "input.modele_chd == 'iramuteq'",
         tags$div(
           style = "margin: 0 0 8px 0; padding: 8px; background: #f7fbff; border-left: 3px solid #1e5aa8;",
-          tags$strong("Options IRaMuTeQ-like (iramuteq-lite/nettoyage_iramuteq.R)"),
+          tags$strong("Options IRaMuTeQ-lite (iramuteqlite/nettoyage_iramuteq.R)"),
           tags$br(),
           tags$small("Ces options pilotent la préparation du texte avant la tokenisation en mode IRaMuTeQ-like."),
           tags$br()
