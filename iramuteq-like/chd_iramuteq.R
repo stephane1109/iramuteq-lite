@@ -728,6 +728,21 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     node_xy[[node_keys[[i]]]] <- c(x = x_vals[[i]], y = y_vals[[i]])
   }
 
+  .draw_orthogonal_edge <- function(x1, y1, x2, y2, mode = c("vertical_tree", "horizontal_tree"), ...) {
+    mode <- match.arg(mode)
+    if (!is.finite(x1) || !is.finite(y1) || !is.finite(x2) || !is.finite(y2)) return(invisible(NULL))
+
+    if (identical(mode, "vertical_tree")) {
+      segments(x1, y1, x1, y2, ...)
+      segments(x1, y2, x2, y2, ...)
+      return(invisible(NULL))
+    }
+
+    segments(x1, y1, x2, y1, ...)
+    segments(x2, y1, x2, y2, ...)
+    invisible(NULL)
+  }
+
   op <- par(no.readonly = TRUE)
   on.exit(par(op), add = TRUE)
 
@@ -748,7 +763,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      segments(p_xy[["x"]], p_xy[["y"]], c_xy[["x"]], c_xy[["y"]], xpd = TRUE)
+      .draw_orthogonal_edge(
+        x1 = p_xy[["x"]], y1 = p_xy[["y"]],
+        x2 = c_xy[["x"]], y2 = c_xy[["y"]],
+        mode = "vertical_tree",
+        xpd = TRUE,
+        lwd = 2.2,
+        col = "#5f5f5f"
+      )
     }
 
     for (tip in names(class_by_tip)) {
@@ -787,7 +809,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
         p_xy <- node_xy[[p_key]]
         c_xy <- node_xy[[c_key]]
         if (is.null(p_xy) || is.null(c_xy)) next
-        segments(p_xy[["y"]], p_xy[["x"]], c_xy[["y"]], c_xy[["x"]], xpd = TRUE)
+        .draw_orthogonal_edge(
+          x1 = p_xy[["y"]], y1 = p_xy[["x"]],
+          x2 = c_xy[["y"]], y2 = c_xy[["x"]],
+          mode = "horizontal_tree",
+          xpd = TRUE,
+          lwd = 2.2,
+          col = "#5f5f5f"
+        )
       }
 
       for (tip in names(class_by_tip)) {
@@ -855,7 +884,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      segments(p_xy[["y"]], p_xy[["x"]], c_xy[["y"]], c_xy[["x"]], xpd = TRUE, col = "#808080", lwd = 1.6)
+      .draw_orthogonal_edge(
+        x1 = p_xy[["y"]], y1 = p_xy[["x"]],
+        x2 = c_xy[["y"]], y2 = c_xy[["x"]],
+        mode = "horizontal_tree",
+        xpd = TRUE,
+        col = "#707070",
+        lwd = 2.3
+      )
     }
 
     for (i in seq_along(tip_keys)) {
