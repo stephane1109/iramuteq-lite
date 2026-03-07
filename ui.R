@@ -288,7 +288,7 @@ ui <- fluidPage(
             actionButton("afc_zoom_in", "Zoom +"),
             actionButton("afc_zoom_out", "Zoom -"),
             actionButton("afc_zoom_reset", "Réinitialiser le zoom AFC termes"),
-            tags$small("Astuce: clique-glisse sur le graphique pour zoomer.")
+            tags$small("Astuce: cliquer-glisser sur le graphique pour zoomer.")
           ),
           plotOutput("plot_afc", height = "720px", brush = brushOpts(id = "afc_brush", resetOnNew = TRUE)),
           tags$h4("Table des mots projetés (fréquence, chi2, p-value, segment exemple)"),

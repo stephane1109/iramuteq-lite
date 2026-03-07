@@ -452,9 +452,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
                                               res_stats_df = NULL,
                                               top_n_terms = 4,
                                               orientation = c("vertical", "horizontal"),
-                                              style_affichage = c("iramuteq_bars", "classique")) {
+                                              style_affichage = c("iramuteq_bars", "classique"),
+                                              edge_style = c("diagonal", "orthogonal"),
+                                              edge_lwd = 1.6) {
   orientation <- match.arg(orientation)
   style_affichage <- match.arg(style_affichage)
+  edge_style <- match.arg(edge_style)
+  edge_lwd <- suppressWarnings(as.numeric(edge_lwd))
+  if (!is.finite(edge_lwd) || is.na(edge_lwd) || edge_lwd <= 0) edge_lwd <- 1.6
 
   .tracer_dendrogramme_hclust <- function(res_stats_df, classes, top_n_terms, orientation) {
     if (is.null(res_stats_df) || !is.data.frame(res_stats_df)) return(FALSE)
