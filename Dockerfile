@@ -5,6 +5,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_BSPM_DISABLE=true
+ENV BSPM_DISABLE=true
 ENV R_LIBS_USER=/usr/local/lib/R/site-library
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
@@ -17,10 +18,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Paquets R (installation explicite via install.packages pour compatibilité CI)
-RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
+RUN R --vanilla -q -e "Sys.setenv(R_BSPM_DISABLE='true', BSPM_DISABLE='true'); options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
 
 # FactoMineR depuis GitHub (sans tirer les Suggests)
-RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
+RUN R --vanilla -q -e "Sys.setenv(R_BSPM_DISABLE='true', BSPM_DISABLE='true'); options(repos=c(CRAN='https://cloud.r-project.org')); if (!requireNamespace('remotes', quietly=TRUE)) install.packages('remotes'); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
 
 # Utilisateur non-root compatible Hugging Face
 RUN set -eux; \
@@ -37,7 +38,7 @@ WORKDIR /home/user/app
 
 COPY . /home/user/app
 
-RUN chown -R user:user /home/user/app
+RUN chown -R "$(id -u user):$(id -g user)" /home/user/app
 
 USER user
 EXPOSE 7860
