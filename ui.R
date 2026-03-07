@@ -1,9 +1,6 @@
 # Rôle du fichier: ui.R porte une partie du pipeline d'analyse IRaMuTeQ-like.
 # ui.R
 
-library(shiny)
-library(htmltools)
-
 
 if (!exists("ui_options_iramuteq", mode = "function", inherits = TRUE)) {
   app_dir <- tryCatch(shiny::getShinyOption("appDir"), error = function(e) NULL)
@@ -27,7 +24,7 @@ if (!exists("ui_resultats_chd_iramuteq", mode = "function", inherits = TRUE)) {
 }
 
 if (!exists("ui_aide_huggingface", mode = "function")) {
-  if (file.exists("help.md")) {
+  if (file.exists("help/help.md")) {
     ui_aide_huggingface <- function() {
       tagList(
         tags$h2("Aide"),
@@ -38,7 +35,7 @@ if (!exists("ui_aide_huggingface", mode = "function")) {
     ui_aide_huggingface <- function() {
       tagList(
         tags$h2("Aide"),
-        tags$p("Le fichier help.md est introuvable. Ajoute help.md à la racine du projet.")
+        tags$p("Le fichier help/help.md est introuvable. Vérifie le dossier d'aide du projet.")
       )
     }
   }
@@ -56,7 +53,7 @@ if (!exists("REGEX_CARACTERES_A_SUPPRIMER", inherits = TRUE)) {
 
 if (!exists("REGEX_CARACTERES_A_SUPPRIMER", inherits = TRUE)) {
   # Fallback explicite : évite d'afficher un message d'erreur permanent dans l'UI
-  # quand le fichier iramuteq-lite/nettoyage_iramuteq.R n'a pas pu être sourcé dans cet environnement.
+  # quand le fichier iramuteqlite/nettoyage_iramuteq.R n'a pas pu être sourcé dans cet environnement.
   REGEX_CARACTERES_AUTORISES <- "a-zA-Z0-9àÀâÂäÄáÁåÅãéÉèÈêÊëËìÌîÎïÏíÍóÓòÒôÔöÖõÕøØùÙûÛüÜúÚçÇßœŒ’ñÑ\\.:,;!\\?'"
   REGEX_CARACTERES_A_SUPPRIMER <- paste0("[^", REGEX_CARACTERES_AUTORISES, "]")
 }

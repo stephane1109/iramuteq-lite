@@ -1,8 +1,6 @@
 # Rôle du fichier: iramuteq-lite/ui_options_iramuteq.R définit les options UI
 # spécifiques au mode IRaMuTeQ-like.
 
-library(shiny)
-
 ui_options_iramuteq <- function() {
   tagList(
     tags$div(class = "sidebar-section-title", "Paramètres CHD (IRaMuTeQ-lite)"),

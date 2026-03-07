@@ -6,8 +6,12 @@
 #                                                                             #
 ###############################################################################
 
-library(shiny)
-library(htmltools)
+if (!"package:shiny" %in% search()) {
+  suppressPackageStartupMessages(require(shiny, quietly = TRUE, warn.conflicts = FALSE))
+}
+if (!"package:htmltools" %in% search()) {
+  suppressPackageStartupMessages(require(htmltools, quietly = TRUE, warn.conflicts = FALSE))
+}
 
 charger_package_optionnel <- function(pkg) {
   ok <- suppressWarnings(
@@ -24,23 +28,22 @@ packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, cha
 
 options(shiny.maxRequestSize = 300 * 1024^2)
 options(shinygadgets.viewer = shiny::browserViewer())
-options(bspm.sudo = TRUE)
 # Force une barre de progression non modale (notification) afin d'éviter
 # le voile gris bloquant avec certaines versions/configurations de Shiny.
 options(shiny.progress.style = "notification")
 
-if (file.exists("help.md")) {
+if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
       tags$h2("Aide"),
-      includeMarkdown("help.md")
+      includeMarkdown("help/help.md")
     )
   }
 } else {
   ui_aide_huggingface <- function() {
     tagList(
       tags$h2("Aide"),
-      tags$p("Le fichier help.md est introuvable. Ajoute help.md à la racine du projet.")
+      tags$p("Le fichier help/help.md est introuvable. Vérifie le dossier d'aide du projet.")
     )
   }
 }
