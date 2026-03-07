@@ -452,9 +452,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
                                               res_stats_df = NULL,
                                               top_n_terms = 4,
                                               orientation = c("vertical", "horizontal"),
-                                              style_affichage = c("iramuteq_bars", "classique")) {
+                                              style_affichage = c("iramuteq_bars", "classique"),
+                                              edge_style = c("diagonal", "orthogonal"),
+                                              edge_lwd = 1.6) {
   orientation <- match.arg(orientation)
   style_affichage <- match.arg(style_affichage)
+  edge_style <- match.arg(edge_style)
+  edge_lwd <- suppressWarnings(as.numeric(edge_lwd))
+  if (!is.finite(edge_lwd) || is.na(edge_lwd) || edge_lwd <= 0) edge_lwd <- 1.6
 
   .tracer_dendrogramme_hclust <- function(res_stats_df, classes, top_n_terms, orientation) {
     if (is.null(res_stats_df) || !is.data.frame(res_stats_df)) return(FALSE)
@@ -728,18 +733,24 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
     node_xy[[node_keys[[i]]]] <- c(x = x_vals[[i]], y = y_vals[[i]])
   }
 
-  .draw_orthogonal_edge <- function(x1, y1, x2, y2, mode = c("vertical_tree", "horizontal_tree"), ...) {
+  .draw_tree_edge <- function(x1, y1, x2, y2, mode = c("vertical_tree", "horizontal_tree"), style = c("diagonal", "orthogonal"), lwd = 1.6, col = "#808080", ...) {
     mode <- match.arg(mode)
+    style <- match.arg(style)
     if (!is.finite(x1) || !is.finite(y1) || !is.finite(x2) || !is.finite(y2)) return(invisible(NULL))
 
-    if (identical(mode, "vertical_tree")) {
-      segments(x1, y1, x1, y2, ...)
-      segments(x1, y2, x2, y2, ...)
+    if (identical(style, "diagonal")) {
+      segments(x1, y1, x2, y2, lwd = lwd, col = col, ...)
       return(invisible(NULL))
     }
 
-    segments(x1, y1, x2, y1, ...)
-    segments(x2, y1, x2, y2, ...)
+    if (identical(mode, "vertical_tree")) {
+      segments(x1, y1, x1, y2, lwd = lwd, col = col, ...)
+      segments(x1, y2, x2, y2, lwd = lwd, col = col, ...)
+      return(invisible(NULL))
+    }
+
+    segments(x1, y1, x2, y1, lwd = lwd, col = col, ...)
+    segments(x2, y1, x2, y2, lwd = lwd, col = col, ...)
     invisible(NULL)
   }
 
@@ -763,13 +774,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      .draw_orthogonal_edge(
+      .draw_tree_edge(
         x1 = p_xy[["x"]], y1 = p_xy[["y"]],
         x2 = c_xy[["x"]], y2 = c_xy[["y"]],
         mode = "vertical_tree",
-        xpd = TRUE,
-        lwd = 2.2,
-        col = "#5f5f5f"
+        style = edge_style,
+        lwd = edge_lwd,
+        col = "#5f5f5f",
+        xpd = TRUE
       )
     }
 
@@ -809,13 +821,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
         p_xy <- node_xy[[p_key]]
         c_xy <- node_xy[[c_key]]
         if (is.null(p_xy) || is.null(c_xy)) next
-        .draw_orthogonal_edge(
+        .draw_tree_edge(
           x1 = p_xy[["y"]], y1 = p_xy[["x"]],
           x2 = c_xy[["y"]], y2 = c_xy[["x"]],
           mode = "horizontal_tree",
-          xpd = TRUE,
-          lwd = 2.2,
-          col = "#5f5f5f"
+          style = edge_style,
+          lwd = edge_lwd,
+          col = "#5f5f5f",
+          xpd = TRUE
         )
       }
 
@@ -884,13 +897,14 @@ tracer_dendrogramme_chd_iramuteq <- function(chd_obj,
       p_xy <- node_xy[[p_key]]
       c_xy <- node_xy[[c_key]]
       if (is.null(p_xy) || is.null(c_xy)) next
-      .draw_orthogonal_edge(
+      .draw_tree_edge(
         x1 = p_xy[["y"]], y1 = p_xy[["x"]],
         x2 = c_xy[["y"]], y2 = c_xy[["x"]],
         mode = "horizontal_tree",
-        xpd = TRUE,
+        style = edge_style,
         col = "#707070",
-        lwd = 2.3
+        lwd = edge_lwd + 0.1,
+        xpd = TRUE
       )
     }
 
