@@ -39,8 +39,8 @@
 
 ### 2.3 Dendrogramme CHD
 
-- **Entrée UI du dendrogramme**: `iramuteq-like/dendogramme_iramuteq.R`
-  - `tracer_dendogramme_iramuteq_ui()` récupère l'objet CHD (`rv$res$chd`, `rv$res_chd`, fallback) et appelle le traceur principal.
+- **Entrée UI du dendrogramme**: `iramuteq-like/dendrogramme_iramuteq.R`
+  - `tracer_dendrogramme_iramuteq_ui()` récupère l'objet CHD (`rv$res$chd`, `rv$res_chd`, fallback) et appelle le traceur principal.
 - **Traceur principal**: `iramuteq-like/chd_iramuteq.R`
   - `tracer_dendrogramme_chd_iramuteq()`:
     - reconstruit la topologie depuis `list_fille`,
@@ -99,7 +99,7 @@ Réduire la surcharge visuelle quand les annotations de termes par classe se che
   - `compact` (nouveau défaut: termes regroupés en légende).
 - **Propagation des paramètres**:
   - `app.R` transmet `input$iramuteq_dendro_display_method` au traceur.
-  - `tracer_dendogramme_iramuteq_ui()` accepte `display_method` et le passe à `tracer_dendrogramme_chd_iramuteq()`.
+  - `tracer_dendrogramme_iramuteq_ui()` accepte `display_method` et le passe à `tracer_dendrogramme_chd_iramuteq()`.
 - **Rendu compact dans le traceur**:
   - en `vertical`: légende textuelle regroupée en bas (`mtext`).
   - en `horizontal`: légende compacte en bas à droite (`legend`).

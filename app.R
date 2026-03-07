@@ -110,7 +110,7 @@ source("iramuteq-like/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("ui.R", encoding = "UTF-8", local = TRUE)
 
 source("iramuteq-like/chd_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteq-like/dendogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteq-like/dendrogramme_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/stats_chd.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteq-like/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
@@ -418,7 +418,7 @@ server <- function(input, output, session) {
       return(invisible(NULL))
     }
 
-    tracer_dendogramme_iramuteq_ui(
+    tracer_dendrogramme_iramuteq_ui(
       rv = rv,
       top_n_terms = 4,
       orientation = "horizontal",

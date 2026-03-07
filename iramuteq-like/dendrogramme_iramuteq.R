@@ -30,7 +30,7 @@
   )
 }
 
-tracer_dendogramme_iramuteq_ui <- function(rv,
+tracer_dendrogramme_iramuteq_ui <- function(rv,
                                             top_n_terms = 4,
                                             orientation = "horizontal",
                                             style_affichage = c("iramuteq_bars", "classique"),
