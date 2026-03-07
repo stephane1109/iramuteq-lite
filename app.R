@@ -6,21 +6,14 @@
 #                                                                             #
 ###############################################################################
 
-suppressPackageStartupMessages(library(shiny))
-suppressPackageStartupMessages(library(htmltools))
-
-charger_package_optionnel <- function(pkg) {
-  ok <- suppressWarnings(
-    suppressPackageStartupMessages(
-      require(pkg, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
-    )
-  )
-  if (!isTRUE(ok)) return(pkg)
-  NULL
-}
-
-packages_requis <- c("quanteda", "wordcloud", "RColorBrewer", "igraph", "dplyr")
-packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, charger_package_optionnel)))
+library(shiny)
+library(rainette)
+library(quanteda)
+library(wordcloud)
+library(RColorBrewer)
+library(igraph)
+library(dplyr)
+library(htmltools)
 
 options(shiny.maxRequestSize = 300 * 1024^2)
 options(shinygadgets.viewer = shiny::browserViewer())
