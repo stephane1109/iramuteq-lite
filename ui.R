@@ -93,7 +93,7 @@ ui <- fluidPage(
     style = "font-size: 14px;",
     "Tentaive de reproduction de la CHD du logiciel IRaMuTeQ (Pierre Ratinaud - LERASS)",
     tags$br(),
-    "Pour plus d’informations, vous pouvez consulter mon site : www.codeandcortex.fr",
+    "Plus de scripts/appli ? vous pouvez consulter mon site : www.codeandcortex.fr",
     tags$br(),
     "version beta 0.4 - 18-02-2026"
   ),
@@ -106,7 +106,7 @@ ui <- fluidPage(
         "modele_chd",
         "Méthode Iramuteq-like",
         choices = c(
-          "IRaMuTeQ-like" = "iramuteq"
+          "IRaMuTeQ-lite" = "iramuteq"
         ),
         selected = "iramuteq",
         inline = FALSE
@@ -253,7 +253,7 @@ ui <- fluidPage(
           textOutput("statut"),
           tags$h3("Journal"),
           tags$pre(style = "white-space: pre-wrap;", textOutput("logs")),
-          tags$h3("Analyse du corpus (mode debug)"),
+          tags$h3("Analyse du corpus"),
           uiOutput("ui_table_stats_corpus"),
           tags$div(
             style = "width: 600px;",
