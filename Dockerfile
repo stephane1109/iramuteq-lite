@@ -5,6 +5,8 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_BSPM_DISABLE=true
+ENV R_LIBS_USER=/usr/local/lib/R/site-library
+ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
 # Python pour spaCy
 RUN apt-get update && \
@@ -40,5 +42,5 @@ RUN chown -R user:user /home/user/app
 USER user
 EXPOSE 7860
 
-# Lancement explicite de l'app Shiny pour Hugging Face Spaces (Docker SDK)
+# Lancement direct minimal de l'app Shiny
 CMD ["R", "--vanilla", "-q", "-e", "port <- as.integer(Sys.getenv('PORT', '7860')); shiny::runApp('/home/user/app', host='0.0.0.0', port=port)"]
