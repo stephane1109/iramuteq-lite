@@ -4,6 +4,7 @@ FROM rocker/r2u:22.04
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
+ENV R_BSPM_DISABLE=true
 
 # Python pour spaCy
 RUN apt-get update && \
@@ -40,4 +41,4 @@ USER user
 EXPOSE 7860
 
 # Lancement explicite de l'app Shiny pour Hugging Face Spaces (Docker SDK)
-CMD ["R", "-q", "-e", "port <- as.integer(Sys.getenv('PORT', '7860')); shiny::runApp('/home/user/app', host='0.0.0.0', port=port)"]
+CMD ["R", "--vanilla", "-q", "-e", "port <- as.integer(Sys.getenv('PORT', '7860')); shiny::runApp('/home/user/app', host='0.0.0.0', port=port)"]
