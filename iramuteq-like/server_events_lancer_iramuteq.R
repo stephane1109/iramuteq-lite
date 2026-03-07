@@ -367,6 +367,64 @@ register_events_lancer <- function(input, output, session, rv) {
       lexique
     }
 
+    charger_expression_fr <- function(app_dir) {
+      chemin_expression <- file.path(app_dir, "dictionnaires", "expression_fr.csv")
+      if (!file.exists(chemin_expression)) {
+        stop(paste0("Fichier dictionnaire d'expressions introuvable: ", chemin_expression))
+      }
+
+      expressions <- utils::read.csv2(
+        chemin_expression,
+        stringsAsFactors = FALSE,
+        encoding = "UTF-8"
+      )
+
+      colonnes_requises <- c("dic_mot", "dic_norm")
+      if (!all(colonnes_requises %in% names(expressions))) {
+        stop("Le fichier expression_fr.csv doit contenir les colonnes dic_mot et dic_norm.")
+      }
+
+      expressions$dic_mot <- tolower(trimws(as.character(expressions$dic_mot)))
+      expressions$dic_mot <- gsub("[’`´ʼʹ]", "'", expressions$dic_mot, perl = TRUE)
+      expressions$dic_norm <- tolower(trimws(as.character(expressions$dic_norm)))
+      expressions <- expressions[
+        nzchar(expressions$dic_mot) & nzchar(expressions$dic_norm),
+        c("dic_mot", "dic_norm"),
+        drop = FALSE
+      ]
+      expressions <- expressions[!duplicated(expressions$dic_mot), , drop = FALSE]
+      expressions
+    }
+
+    appliquer_dictionnaire_expressions <- function(textes, expressions_df) {
+      if (is.null(textes) || length(textes) == 0 ||
+          is.null(expressions_df) || !is.data.frame(expressions_df) || nrow(expressions_df) == 0) {
+        return(list(textes = as.character(textes), n_patterns = 0L, n_occurrences = 0L))
+      }
+
+      textes_out <- as.character(textes)
+      textes_out <- gsub("[’`´ʼʹ]", "'", textes_out, perl = TRUE)
+      dic <- expressions_df
+      ord <- order(nchar(dic$dic_mot), decreasing = TRUE)
+      dic <- dic[ord, , drop = FALSE]
+      n_occurrences <- 0L
+
+      for (i in seq_len(nrow(dic))) {
+        motif <- dic$dic_mot[[i]]
+        remplacement <- dic$dic_norm[[i]]
+        motif_echappe <- gsub("([.|()\\^{}+$*?\\[\\]\\\\])", "\\\\\\1", motif, perl = TRUE)
+        motif_echappe <- gsub("'", "['’`´ʼʹ]", motif_echappe, fixed = TRUE)
+        regex <- paste0("(?i)(?<![[:alnum:]_])", motif_echappe, "(?![[:alnum:]_])")
+
+        nb_match_ligne <- lengths(regmatches(textes_out, gregexpr(regex, textes_out, perl = TRUE)))
+        n_occurrences <- n_occurrences + sum(nb_match_ligne[nb_match_ligne > 0], na.rm = TRUE)
+
+        textes_out <- gsub(regex, remplacement, textes_out, perl = TRUE)
+      }
+
+      list(textes = textes_out, n_patterns = nrow(dic), n_occurrences = as.integer(n_occurrences))
+    }
+
     lire_min_docfreq_manuel <- function(valeur_brute, valeur_defaut = 3L) {
       valeur <- suppressWarnings(as.integer(valeur_brute))
       if (length(valeur) != 1L || is.na(valeur) || !is.finite(valeur) || valeur < 1L) {
@@ -395,6 +453,7 @@ register_events_lancer <- function(input, output, session, rv) {
       }
 
       textes_tok <- textes_chr
+
       if (isTRUE(input$retirer_stopwords)) {
         textes_tok <- gsub(
           pattern = "(?i)\\b(?:[cdjlmnst]|qu)['’`´ʼʹ](?=[[:alpha:]])",
@@ -665,6 +724,7 @@ register_events_lancer <- function(input, output, session, rv) {
 
       rv$spacy_tokens_df <- NULL
       rv$lexique_fr_df <- NULL
+      rv$expression_fr_df <- NULL
       rv$textes_indexation <- NULL
       rv$ner_df <- NULL
       rv$ner_nb_segments <- NA_integer_
@@ -843,6 +903,26 @@ register_events_lancer <- function(input, output, session, rv) {
           ids_corpus <- as.character(docnames(corpus))
 
           textes_orig <- as.character(corpus)
+
+          if (isTRUE(input$expression_utiliser_dictionnaire)) {
+            if (is.null(rv$expression_fr_df) || !is.data.frame(rv$expression_fr_df) || nrow(rv$expression_fr_df) == 0) {
+              rv$expression_fr_df <- charger_expression_fr(app_dir)
+              ajouter_log(rv, paste0("Dictionnaire d'expressions chargé: ", nrow(rv$expression_fr_df), " entrées."))
+            }
+
+            remplacements_expr <- appliquer_dictionnaire_expressions(textes_orig, rv$expression_fr_df)
+            textes_orig <- remplacements_expr$textes
+            ajouter_log(
+              rv,
+              paste0(
+                "Dictionnaire d'expressions appliqué avant analyse : ",
+                remplacements_expr$n_occurrences,
+                " occurrence(s) remplacée(s) via ",
+                remplacements_expr$n_patterns,
+                " entrée(s) du dictionnaire (dic_mot -> dic_norm)."
+              )
+            )
+          }
 
           avancer(0.18, "Préparation texte (nettoyage / minuscules)")
           rv$statut <- "Préparation texte..."
