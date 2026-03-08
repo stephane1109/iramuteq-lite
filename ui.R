@@ -1,8 +1,8 @@
 # Rôle du fichier: ui.R porte une partie du pipeline d'analyse IRaMuTeQ-like.
 # ui.R
 
-suppressPackageStartupMessages(library(shiny))
-suppressPackageStartupMessages(library(htmltools))
+library(shiny)
+library(htmltools)
 
 
 if (!exists("ui_options_iramuteq", mode = "function", inherits = TRUE)) {
