@@ -19,7 +19,16 @@ charger_package_optionnel <- function(pkg) {
   NULL
 }
 
-packages_requis <- c("quanteda", "wordcloud", "RColorBrewer", "igraph", "dplyr")
+packages_requis <- c(
+  "quanteda",
+  "wordcloud",
+  "RColorBrewer",
+  "igraph",
+  "dplyr",
+  "Matrix",
+  "FactoMineR",
+  "irlba"
+)
 packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, charger_package_optionnel)))
 
 options(shiny.maxRequestSize = 300 * 1024^2)

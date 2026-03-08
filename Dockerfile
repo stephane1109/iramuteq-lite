@@ -5,22 +5,28 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_LIBS_USER=/usr/local/lib/R/site-library
-ENV R_LIBS_SITE=/usr/local/lib/R/site-library
+ENV R_LIBS_SITE=/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library
 
-# Python pour spaCy
+# Dépendances système + paquets R binaires (rapides) via apt
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
-      python3 \
-      python3-pip \
+      libxml2-dev \
       r-cran-bspm \
+      r-cran-shiny \
+      r-cran-wordcloud \
+      r-cran-rcolorbrewer \
+      r-cran-igraph \
+      r-cran-dplyr \
+      r-cran-matrix \
+      r-cran-htmltools \
+      r-cran-remotes \
+      r-cran-irlba \
+      r-cran-factominer \
     && rm -rf /var/lib/apt/lists/*
 
-# Paquets R (installation explicite via install.packages pour compatibilité CI)
-RUN R --vanilla -q -e "Sys.setenv(R_BSPM_DISABLE='true', BSPM_DISABLE='true'); options(repos=c(CRAN='https://cloud.r-project.org')); install.packages(c('shiny','quanteda','wordcloud','RColorBrewer','igraph','dplyr','htmltools','remotes','irlba'))"
-
-# FactoMineR depuis GitHub (sans tirer les Suggests)
-RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); if (!requireNamespace('remotes', quietly=TRUE)) install.packages('remotes'); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
+# quanteda n'est pas toujours disponible en paquet Debian/Ubuntu selon le miroir
+RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages('quanteda')"
 
 # Utilisateur non-root compatible Hugging Face
 RUN set -eux; \
