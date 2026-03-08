@@ -82,7 +82,7 @@ source("iramuteqlite/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE
 source("iramuteqlite/afc_helpers_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
-source("iramuteqlite/affichage_iramuteqlite.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/affichage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("ui.R", encoding = "UTF-8", local = TRUE)
 
