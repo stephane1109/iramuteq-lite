@@ -220,6 +220,22 @@ ui <- fluidPage(
       ),
 
       numericInput(
+        "afc_top_termes",
+        "Top termes affichés (AFC classes × termes)",
+        value = 120,
+        min = 20,
+        step = 10
+      ),
+
+      numericInput(
+        "afc_top_modalites",
+        "Top modalités affichées (AFC variables étoilées)",
+        value = 120,
+        min = 20,
+        step = 10
+      ),
+
+      numericInput(
         "top_n",
         "Top N mots par classe (nuages)",
         value = 20,
