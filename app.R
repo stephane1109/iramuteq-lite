@@ -6,37 +6,6 @@
 #                                                                             #
 ###############################################################################
 
-suppressPackageStartupMessages(library(shiny))
-suppressPackageStartupMessages(library(htmltools))
-
-charger_package_optionnel <- function(pkg) {
-  ok <- suppressWarnings(
-    suppressPackageStartupMessages(
-      require(pkg, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE)
-    )
-  )
-  if (!isTRUE(ok)) return(pkg)
-  NULL
-}
-
-packages_requis <- c(
-  "quanteda",
-  "wordcloud",
-  "RColorBrewer",
-  "igraph",
-  "dplyr",
-  "Matrix",
-  "FactoMineR",
-  "irlba"
-)
-packages_manquants <- unique(Filter(Negate(is.null), lapply(packages_requis, charger_package_optionnel)))
-
-options(shiny.maxRequestSize = 300 * 1024^2)
-options(shinygadgets.viewer = shiny::browserViewer())
-# Force une barre de progression non modale (notification) afin d'éviter
-# le voile gris bloquant avec certaines versions/configurations de Shiny.
-options(shiny.progress.style = "notification")
-
 if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
