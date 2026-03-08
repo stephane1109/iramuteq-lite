@@ -20,6 +20,7 @@ RUN apt-get update && \
       r-cran-dplyr \
       r-cran-matrix \
       r-cran-htmltools \
+      r-cran-markdown \
       r-cran-remotes \
       r-cran-markdown \
       r-cran-irlba \
