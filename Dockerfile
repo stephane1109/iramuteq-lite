@@ -28,6 +28,9 @@ RUN apt-get update && \
 # quanteda n'est pas toujours disponible en paquet Debian/Ubuntu selon le miroir
 RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); install.packages('quanteda')"
 
+# FactoMineR depuis GitHub (sans tirer les Suggests)
+RUN R -q -e "options(repos=c(CRAN='https://cloud.r-project.org')); remotes::install_github('husson/FactoMineR', dependencies=NA, upgrade='never')"
+
 # Utilisateur non-root compatible Hugging Face
 RUN set -eux; \
     if ! id -u user >/dev/null 2>&1; then \
