@@ -1,4 +1,4 @@
-# Rôle du fichier: centraliser l'affichage des résultats IRaMuTeQ-like avec des sous-onglets dédiés.
+# Rôle du fichier: centraliser l'affichage des résultats IRaMuTeQ-lite avec des sous-onglets dédiés.
 
 ui_resultats_chd_iramuteq <- function() {
   tabPanel(
