@@ -833,7 +833,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, paste0("MD5 fichier = ", md5))
 
           corpus_importe <- import_corpus_iramuteq(chemin_fichier)
-          ajouter_log(rv, paste0("Nombre de documents importés : ", ndoc(corpus_importe)))
+          ajouter_log(rv, paste0("Nombre de documents importés : ", quanteda::ndoc(corpus_importe)))
 
           avancer(0.14, "Segmentation")
           rv$statut <- "Segmentation..."
@@ -878,12 +878,12 @@ register_events_lancer <- function(input, output, session, rv) {
           }
           min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 3L)
           rv$min_docfreq_applique <- min_docfreq_val
-          ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
-          ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", ndoc(corpus)))
+          ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", quanteda::ndoc(corpus_stats)))
+          ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", quanteda::ndoc(corpus)))
 
           stats_corpus <- NULL
           rv$min_docfreq_applique <- min_docfreq_val
-          ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
+          ajouter_log(rv, paste0("Nombre de segments après découpage : ", quanteda::ndoc(corpus)))
 
           ids_orig <- as.character(docnames(corpus))
           ids_corpus <- ids_orig
@@ -1069,7 +1069,7 @@ register_events_lancer <- function(input, output, session, rv) {
             tok <- tok[idx_non_vides]
           }
 
-          ajouter_log(rv, paste0("Après suppression segments vides : ", ndoc(dfm_obj), " docs ; ", nfeat(dfm_obj), " termes."))
+          ajouter_log(rv, paste0("Après suppression segments vides : ", quanteda::ndoc(dfm_obj), " docs ; ", quanteda::nfeat(dfm_obj), " termes."))
 
           rv$textes_indexation <- vapply(as.list(tok), function(x) paste(x, collapse = " "), FUN.VALUE = character(1))
           names(rv$textes_indexation) <- docnames(dfm_obj)
@@ -1101,6 +1101,8 @@ register_events_lancer <- function(input, output, session, rv) {
           max_formes_iramuteq <- suppressWarnings(as.integer(input$iramuteq_max_formes))
           if (is.na(max_formes_iramuteq) || max_formes_iramuteq < 1L) max_formes_iramuteq <- 6000L
 
+          stats_mode_iramuteq <- normaliser_mode_stats_chd_iramuteq(input$iramuteq_stats_mode)
+
           ajouter_log(
             rv,
             paste0(
@@ -1111,7 +1113,7 @@ register_events_lancer <- function(input, output, session, rv) {
               if (identical(classif_mode_iramuteq, "double")) paste0(" | rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq) else "",
               " | svd_method=", svd_method_iramuteq,
               " | max_formes=", max_formes_iramuteq,
-              " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
+              " | stats_mode=", stats_mode_iramuteq
             )
           )
 
@@ -1122,7 +1124,7 @@ register_events_lancer <- function(input, output, session, rv) {
             mincl = mincl_iramuteq,
             classif_mode = classif_mode_iramuteq,
             svd_method = svd_method_iramuteq,
-            mode_patate = isTRUE(input$iramuteq_mode_patate),
+            mode_patate = FALSE,
             binariser = TRUE,
             max_formes = max_formes_iramuteq
           )
@@ -1185,8 +1187,8 @@ register_events_lancer <- function(input, output, session, rv) {
           dfm_ok <- dfm_obj[idx_ok, ]
           tok_ok <- tok[idx_ok]
 
-          if (ndoc(dfm_ok) < 2) stop("Après classification, il reste moins de 2 segments classés (hors NA).")
-          if (nfeat(dfm_ok) < 2) stop("Après classification, le DFM classé est trop pauvre (moins de 2 termes).")
+          if (quanteda::ndoc(dfm_ok) < 2) stop("Après classification, il reste moins de 2 segments classés (hors NA).")
+          if (quanteda::nfeat(dfm_ok) < 2) stop("Après classification, le DFM classé est trop pauvre (moins de 2 termes).")
 
           rv$clusters <- sort(unique(docvars(filtered_corpus_ok)$Classes))
           rv$res <- res_final
@@ -1211,7 +1213,8 @@ register_events_lancer <- function(input, output, session, rv) {
           res_stats_df <- construire_stats_classes_iramuteq(
             dfm_obj = dfm_ok,
             classes = docvars(filtered_corpus_ok)$Classes,
-            max_p = 1
+            max_p = 1,
+            stats_mode = stats_mode_iramuteq
           ) %>%
             mutate(Classe = normaliser_id_classe_local(Classe)) %>%
             arrange(Classe, desc(chi2))
