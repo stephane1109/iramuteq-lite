@@ -1303,10 +1303,16 @@ register_events_lancer <- function(input, output, session, rv) {
               obj$termes_stats <- df_m
             }
 
-            obj$termes_stats <- construire_segments_exemples_afc(
-              termes_stats = obj$termes_stats,
-              dfm_obj = dfm_ok,
-              corpus_obj = filtered_corpus_ok
+            obj$termes_stats <- tryCatch(
+              construire_segments_exemples_afc(
+                termes_stats = obj$termes_stats,
+                dfm_obj = dfm_ok,
+                corpus_obj = filtered_corpus_ok
+              ),
+              error = function(e_seg) {
+                ajouter_log(rv, paste0("AFC classes × termes : enrichissement des segments ignoré (", e_seg$message, ")."))
+                obj$termes_stats
+              }
             )
 
             rv$afc_obj <- obj

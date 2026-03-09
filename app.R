@@ -97,6 +97,16 @@ source("iramuteqlite/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
 
+# Compatibilité défensive: certains chemins historiques utilisent encore des appels
+# non qualifiés (docvars/docnames). On expose des wrappers explicites pour éviter
+# les erreurs de résolution si ces symboles ne sont pas attachés dans la session.
+if (!exists("docvars", mode = "function", inherits = FALSE)) {
+  docvars <- function(...) quanteda::docvars(...)
+}
+if (!exists("docnames", mode = "function", inherits = FALSE)) {
+  docnames <- function(...) quanteda::docnames(...)
+}
+
 server <- function(input, output, session) {
 
   est_texte_non_vide <- function(x) {
