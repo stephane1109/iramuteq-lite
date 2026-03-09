@@ -47,6 +47,11 @@ ui_options_iramuteq <- function() {
       choices = c("irlba" = "irlba", "svdR" = "svdR"),
       selected = "irlba"
     ),
-    checkboxInput("iramuteq_mode_patate", "Mode patate (moins précis, plus rapide)", value = FALSE)
+    selectInput(
+      "iramuteq_stats_mode",
+      "Calcul des statistiques CHD",
+      choices = choix_mode_stats_chd_iramuteq(),
+      selected = "vectorise"
+    )
   )
 }

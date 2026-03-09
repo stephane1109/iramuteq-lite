@@ -6,6 +6,9 @@
 #                                                                             #
 ###############################################################################
 
+# Augmente la limite d'upload Shiny (défaut ~5 Mo), utile pour les corpus .txt volumineux.
+options(shiny.maxRequestSize = 30 * 1024^2)
+
 if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
@@ -81,6 +84,7 @@ source("iramuteqlite/nettoyage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/concordancier-iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/afc_helpers_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/afc_iramuteq.R", encoding = "UTF-8", local = TRUE)
+source("iramuteqlite/ui_chd_stats_mode_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/ui_options_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/affichage_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/wordcloud_iramuteq.R", encoding = "UTF-8", local = TRUE)
