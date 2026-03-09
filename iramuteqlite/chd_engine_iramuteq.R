@@ -80,7 +80,8 @@ lancer_moteur_chd_iramuteq <- function(
   libsvdc_path = NULL,
   binariser = FALSE,
   rscripts_dir = NULL,
-  max_formes = 6000L
+  max_formes = 6000L,
+  verbose_chd = FALSE
 ) {
   mincl_mode <- match.arg(mincl_mode)
   classif_mode <- match.arg(classif_mode)
@@ -97,7 +98,8 @@ lancer_moteur_chd_iramuteq <- function(
     libsvdc_path = libsvdc_path,
     binariser = binariser,
     rscripts_dir = rscripts_dir,
-    max_formes = max_formes
+    max_formes = max_formes,
+    verbose_chd = verbose_chd
   )
 
   classes_obj <- reconstruire_classes_terminales_iramuteq_fn(

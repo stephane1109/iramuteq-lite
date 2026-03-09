@@ -99,7 +99,7 @@ find.terminales <- function(n1, list_mere, list_fille, mincl) {
 	tab <- table(n1[,ncol(n1)])
 	clnames <- rownames(tab)
 	terminales <- clnames[which(tab >= mincl)]
-	tocheck <- setdiff(clnames, terminales)
+	tocheck <- unique(setdiff(clnames, terminales))
 	if ("0" %in% terminales) {
 		terminales <- terminales[which(terminales != 0)]
 	}
@@ -109,46 +109,34 @@ find.terminales <- function(n1, list_mere, list_fille, mincl) {
 	if ("0" %in% tocheck) {
 		tocheck <- tocheck[which(tocheck != "0")]
 	}
-	print(terminales)
-	print(tocheck)
-	while (length(tocheck)!=0) {
-		for (val in tocheck) {
-			print(val)
-			mere <- list_mere[[as.numeric(val)]]
-			print('mere')
-			print(mere)
-			if (mere != 1) {
-				ln.mere <- getlength(n1, mere)
-				print('ln.mere')
-				print(ln.mere)
-				filles.mere <- getfille(list_fille, mere, NULL)
-				print('fille mere')
-				print(filles.mere)
-				filles.mere <- filles.mere[which(filles.mere != val)]
-				print(filles.mere)
-				if ((ln.mere >= mincl) & (length(intersect(filles.mere, tocheck)) == 0) & (length(intersect(filles.mere, terminales)) == 0 )) {
-					print('mere ok')
-					terminales <- c(terminales, mere)
-					for (f in c(filles.mere, val, mere)) {
-						tocheck <- tocheck[which(tocheck != f)]
-					}	
-				} else if ((ln.mere >= mincl) & (length(intersect(filles.mere, terminales)) == 0) & (length(intersect(filles.mere, tocheck))!=0)){
-					print('mere a checke cause fille ds tocheck')
-					tocheck <- tocheck[which(tocheck != val)]
-					tocheck <- c(mere, tocheck)
+	while (length(tocheck) != 0) {
+		val <- tocheck[1]
+		tocheck <- tocheck[-1]
+		mere <- list_mere[[as.numeric(val)]]
 
-				} else {
-					print('pas ok on vire du check')
-					tocheck <- tocheck[which(tocheck != val)]
-				}
-			} else {
-				print('mere == 1')
-				tocheck <- tocheck[which(tocheck != val)]
-			}
-			print('tocheck')
-			print(tocheck)
+		if (mere == 1) {
+			next
 		}
-		print(tocheck)
+
+		ln.mere <- getlength(n1, mere)
+		if (length(ln.mere) == 0) {
+			ln.mere <- 0
+		}
+		filles.mere <- setdiff(getfille(list_fille, mere, NULL), as.numeric(val))
+		filles.mere.char <- as.character(filles.mere)
+		mere.char <- as.character(mere)
+
+		fille.dans.tocheck <- any(filles.mere.char %in% tocheck)
+		fille.dans.terminales <- any(filles.mere.char %in% terminales)
+
+		if ((ln.mere >= mincl) & !fille.dans.tocheck & !fille.dans.terminales) {
+			terminales <- c(terminales, mere.char)
+			tocheck <- setdiff(tocheck, c(filles.mere.char, val, mere.char))
+		} else if ((ln.mere >= mincl) & !fille.dans.terminales & fille.dans.tocheck) {
+			if (!(mere.char %in% tocheck)) {
+				tocheck <- c(mere.char, tocheck)
+			}
+		}
 	}
 	terminales
 }

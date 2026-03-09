@@ -6,6 +6,7 @@ ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 ENV R_LIBS_USER=/usr/local/lib/R/site-library
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library
+ENV CHD_STATS_CORES=2
 
 # Dépendances système + paquets R binaires (rapides) via apt
 RUN apt-get update && \
