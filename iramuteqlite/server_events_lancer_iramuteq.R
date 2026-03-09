@@ -885,7 +885,7 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", quanteda::ndoc(corpus)))
 
-          ids_orig <- as.character(docnames(corpus))
+          ids_orig <- as.character(quanteda::docnames(corpus))
           ids_corpus <- ids_orig
           invalides <- is.na(ids_corpus) | !nzchar(trimws(ids_corpus))
           if (any(invalides)) {
@@ -899,8 +899,8 @@ register_events_lancer <- function(input, output, session, rv) {
             ajouter_log(rv, paste0("Docnames invalides/dupliqués détectés après segmentation : ", n_problemes, ". Renommage automatique via make.unique()."))
           }
 
-          docnames(corpus) <- ids_uniques
-          ids_corpus <- as.character(docnames(corpus))
+          quanteda::docnames(corpus) <- ids_uniques
+          ids_corpus <- as.character(quanteda::docnames(corpus))
 
           textes_orig <- as.character(corpus)
 
@@ -1008,39 +1008,39 @@ register_events_lancer <- function(input, output, session, rv) {
             )
           )
 
-          if (anyDuplicated(docnames(dfm_obj)) > 0) {
-            dups_dfm <- sum(duplicated(as.character(docnames(dfm_obj))))
-            docnames(dfm_obj) <- make.unique(as.character(docnames(dfm_obj)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(dfm_obj)) > 0) {
+            dups_dfm <- sum(duplicated(as.character(quanteda::docnames(dfm_obj))))
+            quanteda::docnames(dfm_obj) <- make.unique(as.character(quanteda::docnames(dfm_obj)), sep = "_dup")
             ajouter_log(rv, paste0("DFM : docnames dupliqués détectés (", dups_dfm, "). Renommage automatique."))
           }
 
-          included_segments <- as.character(docnames(dfm_obj))
+          included_segments <- as.character(quanteda::docnames(dfm_obj))
           included_segments <- included_segments[!is.na(included_segments) & nzchar(included_segments)]
           included_segments <- unique(included_segments)
 
           filtered_corpus <- corpus[included_segments]
-          if (anyDuplicated(docnames(filtered_corpus)) > 0) {
-            dups_corpus <- sum(duplicated(as.character(docnames(filtered_corpus))))
-            docnames(filtered_corpus) <- make.unique(as.character(docnames(filtered_corpus)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(filtered_corpus)) > 0) {
+            dups_corpus <- sum(duplicated(as.character(quanteda::docnames(filtered_corpus))))
+            quanteda::docnames(filtered_corpus) <- make.unique(as.character(quanteda::docnames(filtered_corpus)), sep = "_dup")
             ajouter_log(rv, paste0("Corpus filtré : docnames dupliqués détectés (", dups_corpus, "). Renommage automatique."))
           }
 
           tok <- tok[included_segments]
-          if (anyDuplicated(docnames(tok)) > 0) {
-            dups_tok <- sum(duplicated(as.character(docnames(tok))))
-            docnames(tok) <- make.unique(as.character(docnames(tok)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(tok)) > 0) {
+            dups_tok <- sum(duplicated(as.character(quanteda::docnames(tok))))
+            quanteda::docnames(tok) <- make.unique(as.character(quanteda::docnames(tok)), sep = "_dup")
             ajouter_log(rv, paste0("Tokens : docnames dupliqués détectés (", dups_tok, "). Renommage automatique."))
           }
 
-          segment_source <- as.character(docnames(dfm_obj))
-          if ("segment_source" %in% names(docvars(filtered_corpus))) {
-            ss <- as.character(docvars(filtered_corpus)$segment_source)
-            idx_ss <- match(as.character(docnames(dfm_obj)), as.character(docnames(filtered_corpus)))
+          segment_source <- as.character(quanteda::docnames(dfm_obj))
+          if ("segment_source" %in% names(quanteda::docvars(filtered_corpus))) {
+            ss <- as.character(quanteda::docvars(filtered_corpus)$segment_source)
+            idx_ss <- match(as.character(quanteda::docnames(dfm_obj)), as.character(quanteda::docnames(filtered_corpus)))
             ss_aligne <- ss[idx_ss]
             ok_ss <- !is.na(ss_aligne) & nzchar(trimws(ss_aligne))
             segment_source[ok_ss] <- ss_aligne[ok_ss]
           }
-          docvars(dfm_obj, "segment_source") <- segment_source
+          quanteda::docvars(dfm_obj, "segment_source") <- segment_source
 
           if (exists("supprimer_docs_vides_dfm", mode = "function", inherits = TRUE)) {
             res_docs <- supprimer_docs_vides_dfm(
@@ -1072,7 +1072,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, paste0("Après suppression segments vides : ", quanteda::ndoc(dfm_obj), " docs ; ", quanteda::nfeat(dfm_obj), " termes."))
 
           rv$textes_indexation <- vapply(as.list(tok), function(x) paste(x, collapse = " "), FUN.VALUE = character(1))
-          names(rv$textes_indexation) <- docnames(dfm_obj)
+          names(rv$textes_indexation) <- quanteda::docnames(dfm_obj)
 
           avancer(0.52, "Classification CHD IRaMuTeQ-like")
           rv$statut <- "Classification en cours..."
@@ -1167,9 +1167,9 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$max_n_groups <- length(unique(groupes[groupes > 0]))
           rv$max_n_groups_chd <- rv$max_n_groups
 
-          docvars(filtered_corpus)$Classes <- groupes
+          quanteda::docvars(filtered_corpus)$Classes <- groupes
 
-          classes_calculees <- suppressWarnings(as.integer(docvars(filtered_corpus)$Classes))
+          classes_calculees <- suppressWarnings(as.integer(quanteda::docvars(filtered_corpus)$Classes))
           idx_ok <- !is.na(classes_calculees) & classes_calculees > 0
 
           nb_non_assignes <- sum(!idx_ok)
@@ -1190,7 +1190,7 @@ register_events_lancer <- function(input, output, session, rv) {
           if (quanteda::ndoc(dfm_ok) < 2) stop("Après classification, il reste moins de 2 segments classés (hors NA).")
           if (quanteda::nfeat(dfm_ok) < 2) stop("Après classification, le DFM classé est trop pauvre (moins de 2 termes).")
 
-          rv$clusters <- sort(unique(docvars(filtered_corpus_ok)$Classes))
+          rv$clusters <- sort(unique(quanteda::docvars(filtered_corpus_ok)$Classes))
           rv$res <- res_final
           rv$dfm <- dfm_ok
           rv$filtered_corpus <- filtered_corpus_ok
@@ -1203,8 +1203,8 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Exports et statistiques..."
 
           segments_vec <- as.character(filtered_corpus_ok)
-          names(segments_vec) <- docnames(filtered_corpus_ok)
-          segments_by_class <- split(segments_vec, docvars(filtered_corpus_ok)$Classes)
+          names(segments_vec) <- quanteda::docnames(filtered_corpus_ok)
+          segments_by_class <- split(segments_vec, quanteda::docvars(filtered_corpus_ok)$Classes)
 
           segments_file <- file.path(rv$export_dir, "segments_par_classe.txt")
           writeLines(unlist(lapply(names(segments_by_class), function(cl) c(paste0("Classe ", cl, ":"), unname(segments_by_class[[cl]]), ""))), segments_file)
@@ -1212,12 +1212,20 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, "Statistiques CHD : calcul IRaMuTeQ-like (contingence classe × terme).")
           res_stats_df <- construire_stats_classes_iramuteq(
             dfm_obj = dfm_ok,
-            classes = docvars(filtered_corpus_ok)$Classes,
+            classes = quanteda::docvars(filtered_corpus_ok)$Classes,
             max_p = 1,
             stats_mode = stats_mode_iramuteq
-          ) %>%
-            mutate(Classe = normaliser_id_classe_local(Classe)) %>%
-            arrange(Classe, desc(chi2))
+          )
+          res_stats_df$Classe <- normaliser_id_classe_local(res_stats_df$Classe)
+          ord_stats <- with(
+            res_stats_df,
+            order(
+              suppressWarnings(as.integer(Classe)),
+              -suppressWarnings(as.numeric(chi2)),
+              na.last = TRUE
+            )
+          )
+          res_stats_df <- res_stats_df[ord_stats, , drop = FALSE]
 
           if (identical(source_dictionnaire, "lexique_fr") &&
               "Terme" %in% names(res_stats_df) &&
@@ -1256,7 +1264,7 @@ register_events_lancer <- function(input, output, session, rv) {
           }
 
           tryCatch({
-            groupes_docs <- docvars(filtered_corpus_ok)$Classes
+            groupes_docs <- quanteda::docvars(filtered_corpus_ok)$Classes
 
             obj <- executer_afc_classes(
               dfm_obj = dfm_ok,
@@ -1295,10 +1303,16 @@ register_events_lancer <- function(input, output, session, rv) {
               obj$termes_stats <- df_m
             }
 
-            obj$termes_stats <- construire_segments_exemples_afc(
-              termes_stats = obj$termes_stats,
-              dfm_obj = dfm_ok,
-              corpus_obj = filtered_corpus_ok
+            obj$termes_stats <- tryCatch(
+              construire_segments_exemples_afc(
+                termes_stats = obj$termes_stats,
+                dfm_obj = dfm_ok,
+                corpus_obj = filtered_corpus_ok
+              ),
+              error = function(e_seg) {
+                ajouter_log(rv, paste0("AFC classes × termes : enrichissement des segments ignoré (", e_seg$message, ")."))
+                obj$termes_stats
+              }
             )
 
             rv$afc_obj <- obj
@@ -1314,10 +1328,10 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Calcul AFC variables étoilées..."
 
           tryCatch({
-            if (!is.null(docvars(filtered_corpus_ok)$Classes)) {
+            if (!is.null(quanteda::docvars(filtered_corpus_ok)$Classes)) {
               objv <- executer_afc_variables_etoilees(
                 corpus_aligne = filtered_corpus_ok,
-                groupes = docvars(filtered_corpus_ok)$Classes,
+                groupes = quanteda::docvars(filtered_corpus_ok)$Classes,
                 max_modalites = 400,
                 seuil_p = if (isTRUE(filtrer_affichage_pvalue)) input$max_p else 1,
                 rv = rv
@@ -1403,15 +1417,15 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Concordancier..."
 
           html_file <- file.path(rv$export_dir, "segments_par_classe.html")
-          textes_index_ok <- rv$textes_indexation[docnames(dfm_ok)]
-          names(textes_index_ok) <- docnames(dfm_ok)
+          textes_index_ok <- rv$textes_indexation[quanteda::docnames(dfm_ok)]
+          names(textes_index_ok) <- quanteda::docnames(dfm_ok)
 
           wordcloud_dir <- file.path(rv$export_dir, "wordclouds")
           dir.create(wordcloud_dir, showWarnings = FALSE, recursive = TRUE)
           cooc_dir <- file.path(rv$export_dir, "cooccurrences")
           dir.create(cooc_dir, showWarnings = FALSE, recursive = TRUE)
 
-          classes_uniques <- sort(unique(as.integer(docvars(filtered_corpus_ok)$Classes)))
+          classes_uniques <- sort(unique(as.integer(quanteda::docvars(filtered_corpus_ok)$Classes)))
           classes_uniques <- classes_uniques[is.finite(classes_uniques)]
 
           if (!identical(rv$res_type, "iramuteq")) {

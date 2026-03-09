@@ -207,13 +207,46 @@ calculer_chd_iramuteq <- function(
   nb_tours <- as.integer(k) - 1L
   if (nb_tours < 1) nb_tours <- 1L
 
-  chd <- CHD(
-    data.in = mat,
-    x = nb_tours,
-    mode.patate = isTRUE(mode_patate),
-    svd.method = svd_method,
-    libsvdc.path = libsvdc_path
-  )
+  # Le moteur CHD historique écrit de nombreux print() et peut ouvrir un device
+  # graphique implicite (Rplots.pdf) dans certains environnements headless.
+  # On encapsule l'appel pour:
+  # 1) rediriger stdout/stderr vers des fichiers temporaires,
+  # 2) forcer un device temporaire inscriptible,
+  # 3) supprimer ce PDF temporaire en sortie.
+  chd <- local({
+    log_out <- tempfile("chd_stdout_", fileext = ".log")
+    log_msg <- tempfile("chd_messages_", fileext = ".log")
+    pdf_tmp <- tempfile("chd_plot_", fileext = ".pdf")
+
+    con_out <- file(log_out, open = "wt")
+    con_msg <- file(log_msg, open = "wt")
+
+    n_out_before <- sink.number(type = "output")
+    n_msg_before <- sink.number(type = "message")
+
+    sink(con_out, type = "output")
+    sink(con_msg, type = "message")
+    grDevices::pdf(pdf_tmp)
+
+    on.exit({
+      while (sink.number(type = "message") > n_msg_before) sink(type = "message")
+      while (sink.number(type = "output") > n_out_before) sink(type = "output")
+      try(grDevices::dev.off(), silent = TRUE)
+      try(close(con_out), silent = TRUE)
+      try(close(con_msg), silent = TRUE)
+      try(unlink(c(pdf_tmp, log_out, log_msg), force = TRUE), silent = TRUE)
+    }, add = TRUE)
+
+    suppressWarnings(
+      CHD(
+        data.in = mat,
+        x = nb_tours,
+        mode.patate = isTRUE(mode_patate),
+        svd.method = svd_method,
+        libsvdc.path = libsvdc_path
+      )
+    )
+  })
 
   n1 <- .normaliser_n1_chd(chd$n1)
   if (is.null(n1) || nrow(n1) != nrow(mat)) {
@@ -328,34 +361,39 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
     stats_mode <- match.arg(stats_mode)
   }
 
-  mat <- as.matrix(dfm_obj)
+  mat <- tryCatch(
+    methods::as(dfm_obj, "dgCMatrix"),
+    error = function(e) as(as.matrix(dfm_obj), "matrix")
+  )
   if (nrow(mat) != length(classes)) {
     stop("Stats IRaMuTeQ-like: longueur de classes incohérente avec le DFM.")
   }
 
   classes <- as.integer(classes)
-  # Alignement IRaMuTeQ clone (BuildProf/chdfunct.R):
-  # les UCE non classées (classe 0) sont exclues du comptage
-  # des effectifs et des tableaux de contingence.
   ok_docs <- !is.na(classes) & classes > 0L
   mat <- mat[ok_docs, , drop = FALSE]
   classes <- classes[ok_docs]
 
   if (nrow(mat) < 2 || ncol(mat) < 1) return(data.frame())
 
-  # Alignement avec l'approche IRaMuTeQ historique (BuildProf):
-  # - contingence en occurrences de formes (et non présence documentaire)
-  # - chi2 signé (sur/sous-représentation)
-  # - p-value issue de pchisq (mode vectorisé) ou chisq.test (mode classique)
-  mat_bin <- ifelse(mat > 0, 1L, 0L)
-  total_docs <- nrow(mat_bin)
-  docs_par_terme <- colSums(mat_bin)
-  occ_par_terme <- colSums(mat)
-  occ_par_classe <- rowsum(rowSums(mat), group = classes, reorder = FALSE)
+  if (inherits(mat, "dgCMatrix")) {
+    mat_bin <- mat
+    if (length(mat_bin@x) > 0) mat_bin@x[] <- 1
+    col_sums <- Matrix::colSums
+    row_sums <- Matrix::rowSums
+  } else {
+    mat_bin <- ifelse(mat > 0, 1L, 0L)
+    col_sums <- base::colSums
+    row_sums <- base::rowSums
+  }
+
+  docs_par_terme <- col_sums(mat_bin)
+  occ_par_terme <- col_sums(mat)
+  occ_par_doc <- row_sums(mat)
+
+  occ_par_classe <- tapply(as.numeric(occ_par_doc), classes, sum)
   occ_totales <- sum(occ_par_terme)
 
-  # Version vectorisée (beaucoup plus rapide que chisq.test() sur chaque terme)
-  # pour tableaux 2x2 avec ddl=1.
   calc_chi_sign_vectorise <- function(a, b, c, d) {
     n <- a + b + c + d
     denom <- (a + b) * (c + d) * (a + c) * (b + d)
@@ -404,6 +442,37 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
     )
   }
 
+  calc_lr_vectorise <- function(a, b, c, d) {
+    n <- a + b + c + d
+    r1 <- a + b
+    r2 <- c + d
+    c1 <- a + c
+    c2 <- b + d
+
+    expected11 <- ifelse(n > 0, r1 * c1 / n, 0)
+    expected12 <- ifelse(n > 0, r1 * c2 / n, 0)
+    expected21 <- ifelse(n > 0, r2 * c1 / n, 0)
+    expected22 <- ifelse(n > 0, r2 * c2 / n, 0)
+
+    lr <- rep(0, length(a))
+
+    idx11 <- a > 0 & expected11 > 0
+    if (any(idx11)) lr[idx11] <- lr[idx11] + a[idx11] * log(a[idx11] / expected11[idx11])
+
+    idx12 <- b > 0 & expected12 > 0
+    if (any(idx12)) lr[idx12] <- lr[idx12] + b[idx12] * log(b[idx12] / expected12[idx12])
+
+    idx21 <- c > 0 & expected21 > 0
+    if (any(idx21)) lr[idx21] <- lr[idx21] + c[idx21] * log(c[idx21] / expected21[idx21])
+
+    idx22 <- d > 0 & expected22 > 0
+    if (any(idx22)) lr[idx22] <- lr[idx22] + d[idx22] * log(d[idx22] / expected22[idx22])
+
+    lr <- 2 * lr
+    lr[!is.finite(lr) | is.na(lr)] <- 0
+    lr
+  }
+
   classes_uniques <- sort(unique(classes))
   sorties <- vector("list", length(classes_uniques))
 
@@ -414,19 +483,14 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
     docs_cl <- sum(in_cl)
     if (docs_cl < 1) next
 
-    docs_terme_cl <- colSums(mat_bin[in_cl, , drop = FALSE])
+    docs_terme_cl <- col_sums(mat_bin[in_cl, , drop = FALSE])
     docs_terme_hors <- pmax(0, docs_par_terme - docs_terme_cl)
 
-    occ_terme_cl <- colSums(mat[in_cl, , drop = FALSE])
+    occ_terme_cl <- col_sums(mat[in_cl, , drop = FALSE])
     occ_terme_hors <- pmax(0, occ_par_terme - occ_terme_cl)
-    occ_classe <- as.numeric(occ_par_classe[as.character(cl), 1, drop = TRUE])
+    occ_classe <- as.numeric(occ_par_classe[as.character(cl)])
     occ_hors_classe <- pmax(0, occ_totales - occ_classe)
 
-    # Tableau 2x2 en occurrences:
-    # [1,1] occurrences du terme dans la classe
-    # [1,2] occurrences du terme hors classe
-    # [2,1] autres occurrences dans la classe
-    # [2,2] autres occurrences hors classe
     n11 <- as.numeric(occ_terme_cl)
     n12 <- as.numeric(occ_terme_hors)
     n21 <- as.numeric(pmax(0, occ_classe - occ_terme_cl))
@@ -438,20 +502,9 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
       chi_p <- calc_chi_sign_vectorise(n11, n12, n21, n22)
     }
 
-    freq_cl <- colSums(mat[in_cl, , drop = FALSE])
+    freq_cl <- occ_terme_cl
     docprop_cl <- if (docs_cl > 0) docs_terme_cl / docs_cl else rep(0, ncol(mat))
-    lr <- mapply(function(a, b, c, d) {
-      n <- a + b + c + d
-      r1 <- a + b
-      r2 <- c + d
-      c1 <- a + c
-      c2 <- b + d
-      expected <- c(r1 * c1 / n, r1 * c2 / n, r2 * c1 / n, r2 * c2 / n)
-      observed <- c(a, b, c, d)
-      idx <- observed > 0 & expected > 0
-      if (!any(idx)) return(0)
-      2 * sum(observed[idx] * log(observed[idx] / expected[idx]))
-    }, n11, n12, n21, n22)
+    lr <- calc_lr_vectorise(n11, n12, n21, n22)
 
     df <- data.frame(
       Terme = colnames(mat),
@@ -459,13 +512,9 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
       lr = as.numeric(lr),
       frequency = as.numeric(freq_cl),
       docprop = as.numeric(docprop_cl),
-      # Alignement IRaMuTeQ: les colonnes d'effectifs affichées en table
-      # correspondent aux occurrences (et non au nombre de segments contenant le terme).
-      # Ex.: "23/46" signifie 23 occurrences dans la classe sur 46 occurrences au total.
       eff_st = as.numeric(freq_cl),
       eff_total = as.numeric(occ_par_terme),
       pourcentage = as.numeric(ifelse(occ_par_terme > 0, 100 * freq_cl / occ_par_terme, 0)),
-      # Colonnes documentaires conservées pour diagnostic (chi2 calculé sur présence/absence doc).
       eff_docs_st = as.numeric(docs_terme_cl),
       eff_docs_total = as.numeric(docs_par_terme),
       p = as.numeric(chi_p$p),
