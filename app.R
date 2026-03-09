@@ -6,6 +6,9 @@
 #                                                                             #
 ###############################################################################
 
+# Augmente la limite d'upload Shiny (défaut ~5 Mo), utile pour les corpus .txt volumineux.
+options(shiny.maxRequestSize = 30 * 1024^2)
+
 if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
