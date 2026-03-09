@@ -9,6 +9,17 @@
 # Augmente la limite d'upload Shiny (défaut ~5 Mo), utile pour les corpus .txt volumineux.
 options(shiny.maxRequestSize = 30 * 1024^2)
 
+# En environnement non interactif (containers, services), certains appels graphiques
+# sans device explicite peuvent tenter d'écrire "Rplots.pdf" dans le répertoire courant.
+# Si ce répertoire n'est pas inscriptible, cela provoque l'erreur:
+# "cannot open file 'Rplots.pdf'".
+# On force donc un device PDF de repli dans tempdir(), toujours inscriptible.
+if (!interactive()) {
+  options(device = function(...) {
+    grDevices::pdf(file = file.path(tempdir(), "Rplots.pdf"), ...)
+  })
+}
+
 if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
@@ -96,6 +107,16 @@ source("iramuteqlite/stats_chd.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/chd_engine_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/server_outputs_status_iramuteq.R", encoding = "UTF-8", local = TRUE)
 source("iramuteqlite/server_events_lancer_iramuteq.R", encoding = "UTF-8", local = TRUE)
+
+# Compatibilité défensive: certains chemins historiques utilisent encore des appels
+# non qualifiés (docvars/docnames). On expose des wrappers explicites pour éviter
+# les erreurs de résolution si ces symboles ne sont pas attachés dans la session.
+if (!exists("docvars", mode = "function", inherits = FALSE)) {
+  docvars <- function(...) quanteda::docvars(...)
+}
+if (!exists("docnames", mode = "function", inherits = FALSE)) {
+  docnames <- function(...) quanteda::docnames(...)
+}
 
 server <- function(input, output, session) {
 

@@ -7,7 +7,7 @@ construire_segments_exemples_afc <- function(termes_stats, dfm_obj, corpus_obj, 
   if (is.null(termes_stats) || nrow(termes_stats) == 0 || is.null(dfm_obj) || is.null(corpus_obj)) return(termes_stats)
   if (!all(c("Terme", "Classe_max") %in% names(termes_stats))) return(termes_stats)
 
-  classes_docs <- suppressWarnings(as.integer(docvars(corpus_obj)$Classes))
+  classes_docs <- suppressWarnings(as.integer(quanteda::docvars(corpus_obj)$Classes))
   classes_docs[!is.finite(classes_docs) | is.na(classes_docs) | classes_docs <= 0] <- NA_integer_
   classes_docs <- as.character(classes_docs)
   textes <- as.character(corpus_obj)
