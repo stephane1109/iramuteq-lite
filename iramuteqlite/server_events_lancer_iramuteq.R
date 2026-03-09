@@ -1101,6 +1101,8 @@ register_events_lancer <- function(input, output, session, rv) {
           max_formes_iramuteq <- suppressWarnings(as.integer(input$iramuteq_max_formes))
           if (is.na(max_formes_iramuteq) || max_formes_iramuteq < 1L) max_formes_iramuteq <- 6000L
 
+          stats_mode_iramuteq <- normaliser_mode_stats_chd_iramuteq(input$iramuteq_stats_mode)
+
           ajouter_log(
             rv,
             paste0(
@@ -1111,7 +1113,7 @@ register_events_lancer <- function(input, output, session, rv) {
               if (identical(classif_mode_iramuteq, "double")) paste0(" | rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq) else "",
               " | svd_method=", svd_method_iramuteq,
               " | max_formes=", max_formes_iramuteq,
-              " | mode_patate=", ifelse(isTRUE(input$iramuteq_mode_patate), "1", "0")
+              " | stats_mode=", stats_mode_iramuteq
             )
           )
 
@@ -1122,7 +1124,7 @@ register_events_lancer <- function(input, output, session, rv) {
             mincl = mincl_iramuteq,
             classif_mode = classif_mode_iramuteq,
             svd_method = svd_method_iramuteq,
-            mode_patate = isTRUE(input$iramuteq_mode_patate),
+            mode_patate = FALSE,
             binariser = TRUE,
             max_formes = max_formes_iramuteq
           )
@@ -1211,7 +1213,8 @@ register_events_lancer <- function(input, output, session, rv) {
           res_stats_df <- construire_stats_classes_iramuteq(
             dfm_obj = dfm_ok,
             classes = docvars(filtered_corpus_ok)$Classes,
-            max_p = 1
+            max_p = 1,
+            stats_mode = stats_mode_iramuteq
           ) %>%
             mutate(Classe = normaliser_id_classe_local(Classe)) %>%
             arrange(Classe, desc(chi2))
