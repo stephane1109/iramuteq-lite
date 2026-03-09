@@ -1215,9 +1215,17 @@ register_events_lancer <- function(input, output, session, rv) {
             classes = quanteda::docvars(filtered_corpus_ok)$Classes,
             max_p = 1,
             stats_mode = stats_mode_iramuteq
-          ) %>%
-            mutate(Classe = normaliser_id_classe_local(Classe)) %>%
-            arrange(Classe, desc(chi2))
+          )
+          res_stats_df$Classe <- normaliser_id_classe_local(res_stats_df$Classe)
+          ord_stats <- with(
+            res_stats_df,
+            order(
+              suppressWarnings(as.integer(Classe)),
+              -suppressWarnings(as.numeric(chi2)),
+              na.last = TRUE
+            )
+          )
+          res_stats_df <- res_stats_df[ord_stats, , drop = FALSE]
 
           if (identical(source_dictionnaire, "lexique_fr") &&
               "Terme" %in% names(res_stats_df) &&
