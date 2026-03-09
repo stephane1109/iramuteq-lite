@@ -885,7 +885,7 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$min_docfreq_applique <- min_docfreq_val
           ajouter_log(rv, paste0("Nombre de segments après découpage : ", quanteda::ndoc(corpus)))
 
-          ids_orig <- as.character(docnames(corpus))
+          ids_orig <- as.character(quanteda::docnames(corpus))
           ids_corpus <- ids_orig
           invalides <- is.na(ids_corpus) | !nzchar(trimws(ids_corpus))
           if (any(invalides)) {
@@ -899,8 +899,8 @@ register_events_lancer <- function(input, output, session, rv) {
             ajouter_log(rv, paste0("Docnames invalides/dupliqués détectés après segmentation : ", n_problemes, ". Renommage automatique via make.unique()."))
           }
 
-          docnames(corpus) <- ids_uniques
-          ids_corpus <- as.character(docnames(corpus))
+          quanteda::docnames(corpus) <- ids_uniques
+          ids_corpus <- as.character(quanteda::docnames(corpus))
 
           textes_orig <- as.character(corpus)
 
@@ -1008,34 +1008,34 @@ register_events_lancer <- function(input, output, session, rv) {
             )
           )
 
-          if (anyDuplicated(docnames(dfm_obj)) > 0) {
-            dups_dfm <- sum(duplicated(as.character(docnames(dfm_obj))))
-            docnames(dfm_obj) <- make.unique(as.character(docnames(dfm_obj)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(dfm_obj)) > 0) {
+            dups_dfm <- sum(duplicated(as.character(quanteda::docnames(dfm_obj))))
+            quanteda::docnames(dfm_obj) <- make.unique(as.character(quanteda::docnames(dfm_obj)), sep = "_dup")
             ajouter_log(rv, paste0("DFM : docnames dupliqués détectés (", dups_dfm, "). Renommage automatique."))
           }
 
-          included_segments <- as.character(docnames(dfm_obj))
+          included_segments <- as.character(quanteda::docnames(dfm_obj))
           included_segments <- included_segments[!is.na(included_segments) & nzchar(included_segments)]
           included_segments <- unique(included_segments)
 
           filtered_corpus <- corpus[included_segments]
-          if (anyDuplicated(docnames(filtered_corpus)) > 0) {
-            dups_corpus <- sum(duplicated(as.character(docnames(filtered_corpus))))
-            docnames(filtered_corpus) <- make.unique(as.character(docnames(filtered_corpus)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(filtered_corpus)) > 0) {
+            dups_corpus <- sum(duplicated(as.character(quanteda::docnames(filtered_corpus))))
+            quanteda::docnames(filtered_corpus) <- make.unique(as.character(quanteda::docnames(filtered_corpus)), sep = "_dup")
             ajouter_log(rv, paste0("Corpus filtré : docnames dupliqués détectés (", dups_corpus, "). Renommage automatique."))
           }
 
           tok <- tok[included_segments]
-          if (anyDuplicated(docnames(tok)) > 0) {
-            dups_tok <- sum(duplicated(as.character(docnames(tok))))
-            docnames(tok) <- make.unique(as.character(docnames(tok)), sep = "_dup")
+          if (anyDuplicated(quanteda::docnames(tok)) > 0) {
+            dups_tok <- sum(duplicated(as.character(quanteda::docnames(tok))))
+            quanteda::docnames(tok) <- make.unique(as.character(quanteda::docnames(tok)), sep = "_dup")
             ajouter_log(rv, paste0("Tokens : docnames dupliqués détectés (", dups_tok, "). Renommage automatique."))
           }
 
-          segment_source <- as.character(docnames(dfm_obj))
+          segment_source <- as.character(quanteda::docnames(dfm_obj))
           if ("segment_source" %in% names(docvars(filtered_corpus))) {
             ss <- as.character(docvars(filtered_corpus)$segment_source)
-            idx_ss <- match(as.character(docnames(dfm_obj)), as.character(docnames(filtered_corpus)))
+            idx_ss <- match(as.character(quanteda::docnames(dfm_obj)), as.character(quanteda::docnames(filtered_corpus)))
             ss_aligne <- ss[idx_ss]
             ok_ss <- !is.na(ss_aligne) & nzchar(trimws(ss_aligne))
             segment_source[ok_ss] <- ss_aligne[ok_ss]
@@ -1072,7 +1072,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, paste0("Après suppression segments vides : ", quanteda::ndoc(dfm_obj), " docs ; ", quanteda::nfeat(dfm_obj), " termes."))
 
           rv$textes_indexation <- vapply(as.list(tok), function(x) paste(x, collapse = " "), FUN.VALUE = character(1))
-          names(rv$textes_indexation) <- docnames(dfm_obj)
+          names(rv$textes_indexation) <- quanteda::docnames(dfm_obj)
 
           avancer(0.52, "Classification CHD IRaMuTeQ-like")
           rv$statut <- "Classification en cours..."
@@ -1102,6 +1102,8 @@ register_events_lancer <- function(input, output, session, rv) {
           if (is.na(max_formes_iramuteq) || max_formes_iramuteq < 1L) max_formes_iramuteq <- 6000L
 
           stats_mode_iramuteq <- normaliser_mode_stats_chd_iramuteq(input$iramuteq_stats_mode)
+          stats_cores_iramuteq <- suppressWarnings(as.integer(Sys.getenv("CHD_STATS_CORES", "1")))
+          if (!is.finite(stats_cores_iramuteq) || is.na(stats_cores_iramuteq) || stats_cores_iramuteq < 1L) stats_cores_iramuteq <- 1L
 
           ajouter_log(
             rv,
@@ -1113,7 +1115,8 @@ register_events_lancer <- function(input, output, session, rv) {
               if (identical(classif_mode_iramuteq, "double")) paste0(" | rst1=", rst1_iramuteq, " | rst2=", rst2_iramuteq) else "",
               " | svd_method=", svd_method_iramuteq,
               " | max_formes=", max_formes_iramuteq,
-              " | stats_mode=", stats_mode_iramuteq
+              " | stats_mode=", stats_mode_iramuteq,
+              " | stats_cores=", stats_cores_iramuteq
             )
           )
 
@@ -1203,7 +1206,7 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Exports et statistiques..."
 
           segments_vec <- as.character(filtered_corpus_ok)
-          names(segments_vec) <- docnames(filtered_corpus_ok)
+          names(segments_vec) <- quanteda::docnames(filtered_corpus_ok)
           segments_by_class <- split(segments_vec, docvars(filtered_corpus_ok)$Classes)
 
           segments_file <- file.path(rv$export_dir, "segments_par_classe.txt")
@@ -1214,7 +1217,8 @@ register_events_lancer <- function(input, output, session, rv) {
             dfm_obj = dfm_ok,
             classes = docvars(filtered_corpus_ok)$Classes,
             max_p = 1,
-            stats_mode = stats_mode_iramuteq
+            stats_mode = stats_mode_iramuteq,
+            n_cores = stats_cores_iramuteq
           ) %>%
             mutate(Classe = normaliser_id_classe_local(Classe)) %>%
             arrange(Classe, desc(chi2))
@@ -1403,8 +1407,8 @@ register_events_lancer <- function(input, output, session, rv) {
           rv$statut <- "Concordancier..."
 
           html_file <- file.path(rv$export_dir, "segments_par_classe.html")
-          textes_index_ok <- rv$textes_indexation[docnames(dfm_ok)]
-          names(textes_index_ok) <- docnames(dfm_ok)
+          textes_index_ok <- rv$textes_indexation[quanteda::docnames(dfm_ok)]
+          names(textes_index_ok) <- quanteda::docnames(dfm_ok)
 
           wordcloud_dir <- file.path(rv$export_dir, "wordclouds")
           dir.create(wordcloud_dir, showWarnings = FALSE, recursive = TRUE)

@@ -166,7 +166,8 @@ calculer_chd_iramuteq <- function(
   libsvdc_path = NULL,
   binariser = FALSE,
   rscripts_dir = NULL,
-  max_formes = 6000L
+  max_formes = 6000L,
+  verbose_chd = FALSE
 ) {
   svd_method <- match.arg(svd_method)
 
@@ -207,13 +208,28 @@ calculer_chd_iramuteq <- function(
   nb_tours <- as.integer(k) - 1L
   if (nb_tours < 1) nb_tours <- 1L
 
-  chd <- CHD(
-    data.in = mat,
-    x = nb_tours,
-    mode.patate = isTRUE(mode_patate),
-    svd.method = svd_method,
-    libsvdc.path = libsvdc_path
-  )
+  if (isTRUE(verbose_chd)) {
+    chd <- CHD(
+      data.in = mat,
+      x = nb_tours,
+      mode.patate = isTRUE(mode_patate),
+      svd.method = svd_method,
+      libsvdc.path = libsvdc_path
+    )
+  } else {
+    # CHD.R historique émet beaucoup de sorties console ; les capturer
+    # réduit fortement le coût I/O sur gros corpus.
+    tmp_logs <- utils::capture.output({
+      chd <- CHD(
+        data.in = mat,
+        x = nb_tours,
+        mode.patate = isTRUE(mode_patate),
+        svd.method = svd_method,
+        libsvdc.path = libsvdc_path
+      )
+    }, type = "output")
+    invisible(tmp_logs)
+  }
 
   n1 <- .normaliser_n1_chd(chd$n1)
   if (is.null(n1) || nrow(n1) != nrow(mat)) {
@@ -318,7 +334,7 @@ reconstruire_classes_terminales_iramuteq <- function(
 }
 
 # Calcule une table de statistiques par classe dans l'esprit des sorties IRaMuTeQ.
-construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats_mode = c("vectorise", "classique")) {
+construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats_mode = c("vectorise", "classique"), n_cores = NULL) {
   if (is.null(dfm_obj)) stop("Stats IRaMuTeQ-like: dfm_obj manquant.")
   if (is.null(classes)) stop("Stats IRaMuTeQ-like: classes manquantes.")
 
@@ -326,6 +342,15 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
     stats_mode <- normaliser_mode_stats_chd_iramuteq(stats_mode)
   } else {
     stats_mode <- match.arg(stats_mode)
+  }
+
+  if (is.null(n_cores)) {
+    env_cores <- suppressWarnings(as.integer(Sys.getenv("CHD_STATS_CORES", "1")))
+    if (!is.finite(env_cores) || is.na(env_cores) || env_cores < 1L) env_cores <- 1L
+    n_cores <- env_cores
+  } else {
+    n_cores <- suppressWarnings(as.integer(n_cores))
+    if (!is.finite(n_cores) || is.na(n_cores) || n_cores < 1L) n_cores <- 1L
   }
 
   mat <- as.matrix(dfm_obj)
@@ -405,14 +430,12 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
   }
 
   classes_uniques <- sort(unique(classes))
-  sorties <- vector("list", length(classes_uniques))
 
-  for (i in seq_along(classes_uniques)) {
-    cl <- classes_uniques[[i]]
+  construire_stats_classe <- function(cl) {
     in_cl <- classes == cl
 
     docs_cl <- sum(in_cl)
-    if (docs_cl < 1) next
+    if (docs_cl < 1) return(NULL)
 
     docs_terme_cl <- colSums(mat_bin[in_cl, , drop = FALSE])
     docs_terme_hors <- pmax(0, docs_par_terme - docs_terme_cl)
@@ -478,7 +501,14 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats
       df <- df[df$p <= max_p, , drop = FALSE]
     }
     df <- df[order(-df$chi2, -df$frequency, -occ_par_terme[df$Terme]), , drop = FALSE]
-    sorties[[i]] <- df
+    df
+  }
+
+  if (.Platform$OS.type == "unix" && n_cores > 1L && length(classes_uniques) > 1L) {
+    coeurs_use <- min(n_cores, length(classes_uniques))
+    sorties <- parallel::mclapply(classes_uniques, construire_stats_classe, mc.cores = coeurs_use)
+  } else {
+    sorties <- lapply(classes_uniques, construire_stats_classe)
   }
 
   out <- dplyr::bind_rows(sorties)
