@@ -9,6 +9,17 @@
 # Augmente la limite d'upload Shiny (défaut ~5 Mo), utile pour les corpus .txt volumineux.
 options(shiny.maxRequestSize = 30 * 1024^2)
 
+# En environnement non interactif (containers, services), certains appels graphiques
+# sans device explicite peuvent tenter d'écrire "Rplots.pdf" dans le répertoire courant.
+# Si ce répertoire n'est pas inscriptible, cela provoque l'erreur:
+# "cannot open file 'Rplots.pdf'".
+# On force donc un device PDF de repli dans tempdir(), toujours inscriptible.
+if (!interactive()) {
+  options(device = function(...) {
+    grDevices::pdf(file = file.path(tempdir(), "Rplots.pdf"), ...)
+  })
+}
+
 if (file.exists("help/help.md")) {
   ui_aide_huggingface <- function() {
     tagList(
