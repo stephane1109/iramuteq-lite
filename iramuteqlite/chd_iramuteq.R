@@ -207,13 +207,46 @@ calculer_chd_iramuteq <- function(
   nb_tours <- as.integer(k) - 1L
   if (nb_tours < 1) nb_tours <- 1L
 
-  chd <- CHD(
-    data.in = mat,
-    x = nb_tours,
-    mode.patate = isTRUE(mode_patate),
-    svd.method = svd_method,
-    libsvdc.path = libsvdc_path
-  )
+  # Le moteur CHD historique écrit de nombreux print() et peut ouvrir un device
+  # graphique implicite (Rplots.pdf) dans certains environnements headless.
+  # On encapsule l'appel pour:
+  # 1) rediriger stdout/stderr vers des fichiers temporaires,
+  # 2) forcer un device temporaire inscriptible,
+  # 3) supprimer ce PDF temporaire en sortie.
+  chd <- local({
+    log_out <- tempfile("chd_stdout_", fileext = ".log")
+    log_msg <- tempfile("chd_messages_", fileext = ".log")
+    pdf_tmp <- tempfile("chd_plot_", fileext = ".pdf")
+
+    con_out <- file(log_out, open = "wt")
+    con_msg <- file(log_msg, open = "wt")
+
+    n_out_before <- sink.number(type = "output")
+    n_msg_before <- sink.number(type = "message")
+
+    sink(con_out, type = "output")
+    sink(con_msg, type = "message")
+    grDevices::pdf(pdf_tmp)
+
+    on.exit({
+      while (sink.number(type = "message") > n_msg_before) sink(type = "message")
+      while (sink.number(type = "output") > n_out_before) sink(type = "output")
+      try(grDevices::dev.off(), silent = TRUE)
+      try(close(con_out), silent = TRUE)
+      try(close(con_msg), silent = TRUE)
+      try(unlink(c(pdf_tmp, log_out, log_msg), force = TRUE), silent = TRUE)
+    }, add = TRUE)
+
+    suppressWarnings(
+      CHD(
+        data.in = mat,
+        x = nb_tours,
+        mode.patate = isTRUE(mode_patate),
+        svd.method = svd_method,
+        libsvdc.path = libsvdc_path
+      )
+    )
+  })
 
   n1 <- .normaliser_n1_chd(chd$n1)
   if (is.null(n1) || nrow(n1) != nrow(mat)) {
