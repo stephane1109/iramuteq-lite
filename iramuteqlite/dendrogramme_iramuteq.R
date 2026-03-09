@@ -17,8 +17,8 @@
   }
 
   if (is.null(classes) && !is.null(rv$filtered_corpus) &&
-      exists("docvars", mode = "function", inherits = TRUE)) {
-    dv <- tryCatch(docvars(rv$filtered_corpus), error = function(e) NULL)
+      requireNamespace("quanteda", quietly = TRUE)) {
+    dv <- tryCatch(quanteda::docvars(rv$filtered_corpus), error = function(e) NULL)
     if (!is.null(dv) && "Classes" %in% names(dv)) classes <- dv$Classes
   }
 
