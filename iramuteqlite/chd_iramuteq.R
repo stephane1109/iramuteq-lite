@@ -318,9 +318,15 @@ reconstruire_classes_terminales_iramuteq <- function(
 }
 
 # Calcule une table de statistiques par classe dans l'esprit des sorties IRaMuTeQ.
-construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
+construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1, stats_mode = c("vectorise", "classique")) {
   if (is.null(dfm_obj)) stop("Stats IRaMuTeQ-like: dfm_obj manquant.")
   if (is.null(classes)) stop("Stats IRaMuTeQ-like: classes manquantes.")
+
+  if (exists("normaliser_mode_stats_chd_iramuteq", mode = "function", inherits = TRUE)) {
+    stats_mode <- normaliser_mode_stats_chd_iramuteq(stats_mode)
+  } else {
+    stats_mode <- match.arg(stats_mode)
+  }
 
   mat <- as.matrix(dfm_obj)
   if (nrow(mat) != length(classes)) {
@@ -340,7 +346,7 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
   # Alignement avec l'approche IRaMuTeQ historique (BuildProf):
   # - contingence en occurrences de formes (et non présence documentaire)
   # - chi2 signé (sur/sous-représentation)
-  # - p-value issue de chisq.test(..., correct = FALSE)
+  # - p-value issue de pchisq (mode vectorisé) ou chisq.test (mode classique)
   mat_bin <- ifelse(mat > 0, 1L, 0L)
   total_docs <- nrow(mat_bin)
   docs_par_terme <- colSums(mat_bin)
@@ -348,19 +354,54 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
   occ_par_classe <- rowsum(rowSums(mat), group = classes, reorder = FALSE)
   occ_totales <- sum(occ_par_terme)
 
-  calc_chi_sign <- function(a, b, c, d) {
-    tb <- matrix(c(a, b, c, d), nrow = 2, byrow = TRUE)
-    chi <- suppressWarnings(stats::chisq.test(tb, correct = FALSE))
-    stat <- suppressWarnings(as.numeric(chi$statistic))
-    pval <- suppressWarnings(as.numeric(chi$p.value))
-    exp11 <- suppressWarnings(as.numeric(chi$expected[1, 1]))
+  # Version vectorisée (beaucoup plus rapide que chisq.test() sur chaque terme)
+  # pour tableaux 2x2 avec ddl=1.
+  calc_chi_sign_vectorise <- function(a, b, c, d) {
+    n <- a + b + c + d
+    denom <- (a + b) * (c + d) * (a + c) * (b + d)
 
-    if (!is.finite(stat) || is.na(stat)) stat <- 0
-    if (!is.finite(pval) || is.na(pval)) pval <- 1
-    if (!is.finite(exp11) || is.na(exp11)) exp11 <- a
+    chi_abs <- rep(0, length(a))
+    idx_ok <- is.finite(denom) & denom > 0 & is.finite(n) & n > 0
+    if (any(idx_ok)) {
+      chi_abs[idx_ok] <- (n[idx_ok] * ((a[idx_ok] * d[idx_ok] - b[idx_ok] * c[idx_ok])^2)) / denom[idx_ok]
+    }
+    chi_abs[!is.finite(chi_abs) | is.na(chi_abs)] <- 0
 
-    signe <- if (a >= exp11) 1 else -1
-    c(chi2 = stat * signe, p = pval)
+    exp11 <- rep(0, length(a))
+    idx_exp <- is.finite(n) & n > 0
+    if (any(idx_exp)) {
+      exp11[idx_exp] <- ((a[idx_exp] + b[idx_exp]) * (a[idx_exp] + c[idx_exp])) / n[idx_exp]
+    }
+    exp11[!is.finite(exp11) | is.na(exp11)] <- 0
+
+    signe <- ifelse(a >= exp11, 1, -1)
+    chi_sign <- chi_abs * signe
+    pval <- stats::pchisq(chi_abs, df = 1, lower.tail = FALSE)
+    pval[!is.finite(pval) | is.na(pval)] <- 1
+
+    list(chi2 = chi_sign, p = pval)
+  }
+
+  calc_chi_sign_classique <- function(a, b, c, d) {
+    chi_mat <- mapply(function(ai, bi, ci, di) {
+      tb <- matrix(c(ai, bi, ci, di), nrow = 2, byrow = TRUE)
+      chi <- suppressWarnings(stats::chisq.test(tb, correct = FALSE))
+      stat <- suppressWarnings(as.numeric(chi$statistic))
+      pval <- suppressWarnings(as.numeric(chi$p.value))
+      exp11 <- suppressWarnings(as.numeric(chi$expected[1, 1]))
+
+      if (!is.finite(stat) || is.na(stat)) stat <- 0
+      if (!is.finite(pval) || is.na(pval)) pval <- 1
+      if (!is.finite(exp11) || is.na(exp11)) exp11 <- ai
+
+      signe <- ifelse(ai >= exp11, 1, -1)
+      c(chi2 = stat * signe, p = pval)
+    }, a, b, c, d)
+
+    list(
+      chi2 = as.numeric(chi_mat["chi2", ]),
+      p = as.numeric(chi_mat["p", ])
+    )
   }
 
   classes_uniques <- sort(unique(classes))
@@ -391,7 +432,11 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
     n21 <- as.numeric(pmax(0, occ_classe - occ_terme_cl))
     n22 <- as.numeric(pmax(0, occ_hors_classe - occ_terme_hors))
 
-    chi_p <- t(mapply(calc_chi_sign, n11, n12, n21, n22))
+    if (identical(stats_mode, "classique")) {
+      chi_p <- calc_chi_sign_classique(n11, n12, n21, n22)
+    } else {
+      chi_p <- calc_chi_sign_vectorise(n11, n12, n21, n22)
+    }
 
     freq_cl <- colSums(mat[in_cl, , drop = FALSE])
     docprop_cl <- if (docs_cl > 0) docs_terme_cl / docs_cl else rep(0, ncol(mat))
@@ -410,7 +455,7 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
 
     df <- data.frame(
       Terme = colnames(mat),
-      chi2 = as.numeric(chi_p[, "chi2"]),
+      chi2 = as.numeric(chi_p$chi2),
       lr = as.numeric(lr),
       frequency = as.numeric(freq_cl),
       docprop = as.numeric(docprop_cl),
@@ -423,7 +468,7 @@ construire_stats_classes_iramuteq <- function(dfm_obj, classes, max_p = 1) {
       # Colonnes documentaires conservées pour diagnostic (chi2 calculé sur présence/absence doc).
       eff_docs_st = as.numeric(docs_terme_cl),
       eff_docs_total = as.numeric(docs_par_terme),
-      p = as.numeric(chi_p[, "p"]),
+      p = as.numeric(chi_p$p),
       Classe = as.integer(cl),
       stringsAsFactors = FALSE
     )
