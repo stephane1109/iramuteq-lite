@@ -833,7 +833,7 @@ register_events_lancer <- function(input, output, session, rv) {
           ajouter_log(rv, paste0("MD5 fichier = ", md5))
 
           corpus_importe <- import_corpus_iramuteq(chemin_fichier)
-          ajouter_log(rv, paste0("Nombre de documents importés : ", ndoc(corpus_importe)))
+          ajouter_log(rv, paste0("Nombre de documents importés : ", quanteda::ndoc(corpus_importe)))
 
           avancer(0.14, "Segmentation")
           rv$statut <- "Segmentation..."
@@ -878,12 +878,12 @@ register_events_lancer <- function(input, output, session, rv) {
           }
           min_docfreq_val <- lire_min_docfreq_manuel(input$min_docfreq, valeur_defaut = 3L)
           rv$min_docfreq_applique <- min_docfreq_val
-          ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", ndoc(corpus_stats)))
-          ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", ndoc(corpus)))
+          ajouter_log(rv, paste0("Nombre de segments corpus (stats) : ", quanteda::ndoc(corpus_stats)))
+          ajouter_log(rv, paste0("Nombre de segments analyse (CHD) : ", quanteda::ndoc(corpus)))
 
           stats_corpus <- NULL
           rv$min_docfreq_applique <- min_docfreq_val
-          ajouter_log(rv, paste0("Nombre de segments après découpage : ", ndoc(corpus)))
+          ajouter_log(rv, paste0("Nombre de segments après découpage : ", quanteda::ndoc(corpus)))
 
           ids_orig <- as.character(docnames(corpus))
           ids_corpus <- ids_orig
@@ -1069,7 +1069,7 @@ register_events_lancer <- function(input, output, session, rv) {
             tok <- tok[idx_non_vides]
           }
 
-          ajouter_log(rv, paste0("Après suppression segments vides : ", ndoc(dfm_obj), " docs ; ", nfeat(dfm_obj), " termes."))
+          ajouter_log(rv, paste0("Après suppression segments vides : ", quanteda::ndoc(dfm_obj), " docs ; ", quanteda::nfeat(dfm_obj), " termes."))
 
           rv$textes_indexation <- vapply(as.list(tok), function(x) paste(x, collapse = " "), FUN.VALUE = character(1))
           names(rv$textes_indexation) <- docnames(dfm_obj)
@@ -1187,8 +1187,8 @@ register_events_lancer <- function(input, output, session, rv) {
           dfm_ok <- dfm_obj[idx_ok, ]
           tok_ok <- tok[idx_ok]
 
-          if (ndoc(dfm_ok) < 2) stop("Après classification, il reste moins de 2 segments classés (hors NA).")
-          if (nfeat(dfm_ok) < 2) stop("Après classification, le DFM classé est trop pauvre (moins de 2 termes).")
+          if (quanteda::ndoc(dfm_ok) < 2) stop("Après classification, il reste moins de 2 segments classés (hors NA).")
+          if (quanteda::nfeat(dfm_ok) < 2) stop("Après classification, le DFM classé est trop pauvre (moins de 2 termes).")
 
           rv$clusters <- sort(unique(docvars(filtered_corpus_ok)$Classes))
           rv$res <- res_final

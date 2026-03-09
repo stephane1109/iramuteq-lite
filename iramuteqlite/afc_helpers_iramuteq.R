@@ -12,7 +12,7 @@ construire_segments_exemples_afc <- function(termes_stats, dfm_obj, corpus_obj, 
   classes_docs <- as.character(classes_docs)
   textes <- as.character(corpus_obj)
 
-  if (length(classes_docs) != ndoc(dfm_obj) || length(textes) != ndoc(dfm_obj)) return(termes_stats)
+  if (length(classes_docs) != quanteda::ndoc(dfm_obj) || length(textes) != quanteda::ndoc(dfm_obj)) return(termes_stats)
 
   mat <- as.matrix(dfm_obj)
   termes_stats$Segment_texte <- NA_character_
