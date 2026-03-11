@@ -1,4 +1,4 @@
-# Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-like.
+# Rôle du fichier: point d'entrée UI pour le tracé du dendrogramme IRaMuTeQ-lite.
 # Ce fichier pilote le mode d'affichage; le rendu graphique bas niveau est implémenté
 # dans `tracer_dendrogramme_chd_iramuteq()` (fichier chd_iramuteq.R).
 
