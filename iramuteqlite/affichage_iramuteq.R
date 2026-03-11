@@ -6,7 +6,10 @@ ui_resultats_chd_iramuteq <- function() {
     tabPanel(
       "Dendrogramme",
       tags$h3("Dendrogramme CHD (IRaMuTeQ-lite)"),
-      plotOutput("plot_chd_iramuteq_dendro", height = "420px")
+      tags$div(
+        style = "width: 800px; max-width: 100%; margin: 0 auto;",
+        plotOutput("plot_chd_iramuteq_dendro", height = "420px", width = "800px")
+      )
     ),
     tabPanel(
       "Stats CHD",
