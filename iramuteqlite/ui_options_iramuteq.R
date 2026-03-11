@@ -8,7 +8,7 @@ ui_options_iramuteq <- function() {
     numericInput(
       "iramuteq_max_formes",
       "Nombre maximum de forme analysées",
-      value = 6000,
+      value = 20000,
       min = 1,
       step = 100
     ),
