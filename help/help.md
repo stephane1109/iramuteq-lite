@@ -1,14 +1,10 @@
-[//]: # (Rôle du fichier: help.md documente une partie de l'application IRaMuTeQ-like.)
-[//]: # (Ce document sert de référence fonctionnelle/technique pour l'équipe.)
-[//]: # (Il décrit le comportement attendu afin de sécuriser maintenance et diagnostics.)
-### codeandcortex.fr - Stéphane Meurisse - version beta 0.4 - 18-02-2026
+### codeandcortex.fr - Stéphane Meurisse - version beta 0.1 - 09-03-2026
 - <a href="https://www.codeandcortex.fr" target="_blank" rel="noopener noreferrer">codeandcortex.fr</a>
 - <a href="https://www.codeandcortex.fr/comprendre-chd-methode-reinert/" target="_blank" rel="noopener noreferrer">Comprendre la CHD</a>
 
 
 ### IRaMuTeQ
-IRaMuTeQ, développé par Pierre Ratinaud, est un logiciel libre devenu une référence pour l’analyse textuelle en sciences humaines et sociales. Il met en œuvre la méthode de Reinert (CHD), l’AFC, ainsi que l’analyse de similitudes de Vergès, et propose de nombreux traitements complémentaires pour explorer la structure lexicale d’un corpus. Un atout est son dictionnaire de lemmes, plus précis et performant que beaucoup d’alternatives, ce qui améliore la stabilité des classes. Depuis la version 0.4 vous avez le choix avec le dictionnaire NLP de spaCy et celui de **IRaMuTeQ - lexique_fr** (uniquement fr)
-Ce qui change à partir de la version O.4 c'est l'utilisation du **dictionnaire** utilisé par **IRaMuTeQ** (uniquement fr). **Ce dictionnaire est plus précis que spaCy**.
+IRaMuTeQ, développé par Pierre Ratinaud, est un logiciel libre devenu une référence pour l’analyse textuelle en sciences humaines et sociales. Il met en œuvre la méthode de Reinert (CHD), l’AFC, ainsi que l’analyse de similitudes de Vergès, et propose de nombreux traitements complémentaires pour explorer la structure lexicale d’un corpus. Un atout est son dictionnaire de lemmes, plus précis et performant que beaucoup d’alternatives, ce qui améliore la stabilité des classes. Le dictionnaire NLP est celui de **IRaMuTeQ - lexique_fr** (uniquement fr)
 
 - <a href="https://pratinaud.gitpages.huma-num.fr/iramuteq-website/" target="_blank" rel="noopener noreferrer">IRaMuTeQ</a>
 
@@ -18,14 +14,14 @@ Ce qui change à partir de la version O.4 c'est l'utilisation du **dictionnaire*
 La méthode de Reinert est une approche statistique d’analyse lexicale conçue pour dégager des « mondes lexicaux » dans un corpus. 
 L’idée est de repérer des ensembles de segments de texte qui partagent des vocabulaires proches. 
 
-La CHD, pour "classification hiérarchique descendante", est l’algorithme de partitionnement associé à cette méthode. 
+La CHD, pour "Classification Hiérarchique Descendante", est l’algorithme de partitionnement associé à cette méthode. 
 Il procède par divisions successives : on prend l’ensemble des segments, puis on le coupe en deux groupes maximisant leur différenciation lexicale. 
 Ensuite, chaque groupe peut être à nouveau subdivisé, et ainsi de suite, jusqu’à obtenir un nombre de classes jugé pertinent ou une limite imposée par les paramètres.
 
 
-### Moteur de classification IRaMuTeQ-like
+### Moteur de classification IRaMuTeQ-lite
 
-L'application utilise un moteur de CHD compatible IRaMuTeQ-like, intégré au dépôt.
+L'application utilise un moteur de CHD compatible IRaMuTeQ-lite, intégré au dépôt.
 Il réalise la segmentation, la classification hiérarchique descendante et les exports d'analyse.
 
 ### Pourquoi vos fichiers peuvent disparaître sur Hugging Face
@@ -35,26 +31,48 @@ Sur Hugging Face Spaces, le stockage local de ce conteneur est temporaire : si l
 Conseil : télécharge l’archive ZIP des exports juste après la fin de l’analyse.
 
 
-# Logique générale de l’application
+### DFM (définition et construction)
 
-Uploadez un fichier texte au format IRaMuTeQ. L’app segmente, construit une matrice termes-documents (DTM), lance la CHD avec le moteur IRaMuTeQ-like, calcule les statistiques, génère un HTML surligné (concordancier), puis produit la CHD, AFC, NER, nuages de mots et réseaux de cooccurrences. L’onglet d’exploration permet de visualiser la CHD.
+- **DFM (Document-Feature Matrix)** : matrice où chaque ligne = un segment, chaque colonne = un terme, chaque cellule = nombre d’occurrences du terme dans le segment.
+- Construction (version courte) : segmentation → tokenisation/nettoyage → retrait optionnel des stopwords → filtrage `min_docfreq` (`dfm_trim`) pour retirer les termes trop rares.
 
-### Choix de la langue du dictionnaire spaCy
+### Segments vides (dans la DFM)
 
-Vous avez le choix entre 4 langues spaCy préinstallées : français, anglais, espagnol et allemand (modèles "large", lg). D’autres langues peuvent être ajoutées ensuite selon les besoins. Il existe quatre tailles de modèles : "sm", "md", "lg" et "trf" (basé sur la technologie "transformer"). Le script détecte la cohérence entre le choix du dictionnaire et votre corpus importé, sur la base des stopwords.
+- Un **segment vide** est un segment dont la somme de ligne vaut 0 dans la DFM.
+- En clair : c'est un segment de texte pour lequel **aucun terme ne survit** après les filtres (stopwords, fréquence minimale `min_docfreq`, nettoyage, etc.).
+- Donc "vide" signifie ici : **vide de termes conservés dans la DFM**, pas forcément vide dans le texte brut.
+- Ces segments sont supprimés avant la CHD.
 
-### Paramètres de l’analyse
+### Définitions IRaMuTeQ des effectifs (table CHD)
 
-- **segment_size** : taille des segments lors du découpage du corpus. Plus petit donne plus de segments, plus grand donne des segments plus longs.
-- **k (nombre de classes)** : nombre de classes demandé pour la CHD.
-- Nombre minimal de termes par segment : `min_segment_size` : Lors de la tokenisation et du calcul de la dtm, certaines formes (mots-outils, mots trop peu fréquents) ont été supprimées, les segments peuvent donc varier en taille. 
-Avec `min_segment_size = 10`, les segments comportant moins de 10 formes sont regroupés avec le segment suivant ou précédent du même document jusqu'à atteindre la taille minimale souhaitée.
-- Effectif minimal pour scinder une classe : **min_split_members**. Nombre minimal de documents pour qu'une classe soit scindée en deux à l'étape suivante de la classification.
-- Fréquence minimale des termes : `dfm_trim min_docfreq` : fréquence minimale en nombre de segments pour conserver un terme dans le DFM. Plus "haut" enlève les termes rares. Par exemple si vous `dfm_trim = 3` cela supprime de la matrice les termes apparaissant dans moins de 3 segments.
-- **max_p (p-value)** : seuil de p-value pour filtrer les termes mis en avant dans les statistiques.
-- **top_n (wordcloud)** : nombre de termes affichés dans chaque nuage de mots.
-- **window (cooccurrences)** : taille de la fenêtre glissante pour calculer les cooccurrences.
-- **top_feat (cooccurrences)** : nombre de termes retenus pour construire le réseau de cooccurrences.
+- **Eff. s.t. (effectif des segments de texte)** : nombre de segments de texte de la classe qui contiennent au moins une fois la forme.
+- **Eff. total (effectif total des segments de texte)** : nombre de segments de texte dans tout le corpus classé qui contiennent au moins une fois la forme.
+- **Important** : ces deux colonnes sont des comptages de **segments contenant la forme** (présence/absence), pas des comptages d'occurrences.
+
+### Segments non classés (Classe 0 / NA)
+
+- Un **segment non classé** est un segment qui n'est pas affecté à une classe terminale à l'issue de la CHD (valeur de classe `0` ou `NA`).
+- Dans l'application, ces segments sont **exclus des calculs CHD/AFC finaux** et des statistiques de classes.
+- Conséquence pratique : les effectifs `Eff. s.t.` et `Eff. total` sont calculés sur le **corpus classé** (segments avec classe `> 0`) et non sur l'ensemble brut des segments importés.
+- L'application journalise le nombre de segments non classés pour audit/reproductibilité.
+
+### Paramètres de l’analyse (appliqués au calcul IRaMuTeQ-like)
+
+- **segment_size** : taille des segments pour la segmentation simple (valeur UI par défaut: 40).
+- **Fréquence minimale des termes (`min_docfreq`)** : valeur recommandée **3**. Une forme doit apparaître dans au moins 3 segments pour être conservée; plus la valeur augmente, plus les termes rares sont exclus.
+- **max_p (p-value)** + **Filtrer l'affichage par p-value** : ce seuil filtre surtout l'affichage des tableaux/stats/concordancier/nuages (le calcul CHD est lancé sur le DFM préparé en amont).
+- **top_n (wordcloud)** : nombre de termes affichés dans les nuages de mots par classe.
+
+#### Paramètres CHD spécifiques IRaMuTeQ-lite
+
+- **Nombre de classes terminales de la phase 1 (`k_iramuteq`)** : nombre de classes cibles pour la phase de partition.
+- **mincl (auto/manuel)** : seuil minimal d'UCE pour conserver une classe terminale (mode automatique ou valeur manuelle).
+- **Type de classification terminale** :
+  - `simple` : segmentation avec `segment_size`.
+  - `double` : segmentation en deux passes avec **rst1** puis **rst2**.
+- **Méthode SVD (`iramuteq_svd_method`)** : `irlba` (défaut) ou `svdR`.
+- **Nombre maximum de formes analysées (`iramuteq_max_formes`)** : limite le nombre de termes conservés pour la CHD.
+- **Calcul des statistiques CHD (`iramuteq_stats_mode`)** : choix du mode de calcul des stats (vectorisé/classique) sans changer la logique métier des sorties.
 
 ### Options de nettoyage du texte
 
@@ -64,9 +82,11 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 - **Supprimer la ponctuation** (`supprimer_ponctuation`) : active `remove_punct` lors de la tokenisation quanteda. La ponctuation est retirée des tokens utilisés pour les analyses (CHD, stats).
 - **Supprimer les chiffres (0-9)** (`supprimer_chiffres`) : supprime les chiffres avant tokenisation.
 - **Traiter les élisions FR** (`supprimer_apostrophes`) : enlève les élisions en début de mot (`c'`, `j'`, `l'`, `m'`, `n'`, `s'`, `t'`, `d'`, `qu'`) pour ramener par ex. `c'est` vers `est`.
-- **Forcer en minuscules avant analyse** (`forcer_minuscules_avant`) : convertit le texte en minuscules avant la construction des tokens/termes.
+- **Remplacer les tirets par des espaces** (`remplacer_tirets_espaces`) : transforme `mot-compose` en `mot compose` avant tokenisation.
+- **Retirer les stopwords** (`retirer_stopwords`) : enlève les mots-outils français via la liste `quanteda::stopwords("fr")`.
+- **Passage en minuscules** : appliqué automatiquement avant la construction des tokens/termes (option non configurable).
 
-#### Stopwords en mode IRaMuTeQ-like
+#### Stopwords en mode IRaMuTeQ-lite
 
 - En mode **IRaMuTeQ-like**, la source de lemmatisation est forcée sur **Lexique (fr)**.
 - Donc, quand l'option **Retirer les stopwords** est activée, le filtrage se fait avec les stopwords **français de quanteda** (et non avec spaCy).
@@ -77,17 +97,17 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 - Quand **Supprimer la ponctuation** est cochée, la ponctuation est bien retirée dans les **données d’analyse**.
 - Le **concordancier HTML** continue d’afficher les segments issus du corpus, donc vous pouvez encore voir de la ponctuation dans le texte affiché.
 
-### Lemmatisation (option)
+### Dictionnaire et lemmatisation (calcul IRaMuTeQ-like)
 
-- **Lemmatisation** : si activée, le texte est **lemmatisé avec Spacy ou le dictionnaire de lemme provenant du logiciel IRaMuTeQ - lexique_fr**. La lemmatisation semble (beaucoup) plus efficace avec le dictionnaire IRaMuTeQ provenant de **OpenLexicon (modifié)**.
+- **Source de lemmatisation** : en mode IRaMuTeQ-lite, la source active est **Lexique (fr)**.
+- **Lemmatisation via lexique_fr** (`lexique_utiliser_lemmes`) : remplace les formes par leur lemme (`forme → c_lemme`) avant la DFM.
+- **Dictionnaire d'expressions** (`expression_utiliser_dictionnaire`) : applique les remplacements `dic_mot → dic_norm` avant l'analyse.
 
 - <a href="https://openlexicon.fr/" target="_blank" rel="noopener noreferrer">OpenLexicon</a>
 
-### Filtrage Morphosyntaxique
-- **Tokens à conserver** : filtre les tokens conservés selon leur catégorie grammaticale (ex : NOUN, ADJ, VERB, PROPN, ADV...).
-
-### Paramètres SpaCy/NER
-- Activer NER (spaCy) => Détections des entités nommées (NER) par spaCy (ex : "Paris" = "LOC"). Le modele spaCy "md" est un peu léger... pour cette tâche.
+### Filtrage morphosyntaxique
+- **Filtrage morphosyntaxique** (`filtrage_morpho`) : filtre les formes selon `c_morpho` du lexique_fr.
+- **Catégories conservées** (`pos_lexique_a_conserver`) : sélection des étiquettes autorisées (ex: NOM, VER, ADJ, etc.).
 
 ### Exploration
 
@@ -95,14 +115,11 @@ Ces options agissent surtout sur la **préparation linguistique** (tokenisation,
 - **CHD** : affichage graphique de la CHD.
 - **Type** : bar (barres) ou cloud (nuage) pour l’affichage des termes par classe.
 - **Statistiques** : chi2, lr, frequency, selon le critère utilisé pour classer les termes.
+- **AFC (limite 400 termes)** : quand le vocabulaire dépasse 400 termes, l'application conserve d'abord les 400 termes les plus fréquents (pas les meilleurs chi2), puis calcule les chi2 sur cette table réduite.
+- **CHD (pas de plafond fixe type 400)** : la CHD ne coupe pas automatiquement à 400 termes ; elle travaille sur le vocabulaire restant après prétraitements et filtre `min_docfreq`.
 - Dans les exports CSV de type (`measure = "chi2"`), les colonnes suivantes sont importantes :
   - **`n_target`** : nombre d’occurrences du terme dans la classe/cluster analysé.
   - **`n_reference`** : nombre d’occurrences du même terme dans (tout) le corpus de référence (le reste des classes).
   - **`chi2`** et **`p`** : test d’association entre cible et référence ; plus `chi2` est élevé et `p` petite, plus le terme est spécifiquement lié à la classe.
 - **Nombre de termes** : nombre de termes affichés par classe dans la visualisation.
 - **Afficher les valeurs négatives** : inclut les termes négativement associés à une classe.
-
-### Démarrage
-
-- L’application n'effectue aucune mise à jour automatique d'un moteur externe au lancement.
-- Si un ancien message de mise à jour automatique apparaît encore, reconstruisez l'image ou le conteneur avec la dernière version du dépôt.
